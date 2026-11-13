@@ -237,6 +237,7 @@ export default function ContentPage() {
         const replacement = action === "edited" ? opts.value ?? "" : ff.suggestion ?? "";
         if (ff.ruleId === "A-03") it.altText = replacement;
         else if (ff.quote) it.draftText = applyFix(it.draftText, ff.quote, replacement);
+        ff.applied = replacement;
       }
       ff.status = action;
       ff.reason = opts.reason;
@@ -257,10 +258,12 @@ export default function ContentPage() {
     mutate(item.id, (it) => {
       const v = it.versions[it.versions.length - 1];
       const ff = v.findings.find((x) => x.id === f.id)!;
-      if ((ff.status === "accepted" || ff.status === "edited") && ff.quote && ff.suggestion !== undefined && ff.status === "accepted") {
-        const idx = it.draftText.indexOf(ff.suggestion);
-        if (ff.suggestion && idx >= 0) it.draftText = it.draftText.slice(0, idx) + ff.quote + it.draftText.slice(idx + ff.suggestion.length);
+      if ((ff.status === "accepted" || ff.status === "edited") && ff.ruleId === "A-03") it.altText = "";
+      else if ((ff.status === "accepted" || ff.status === "edited") && ff.quote && ff.applied) {
+        const idx = it.draftText.indexOf(ff.applied);
+        if (idx >= 0) it.draftText = it.draftText.slice(0, idx) + ff.quote + it.draftText.slice(idx + ff.applied.length);
       }
+      ff.applied = undefined;
       ff.status = "open";
       ff.reason = undefined;
       ff.decidedBy = undefined;

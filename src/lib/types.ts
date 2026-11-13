@@ -90,6 +90,8 @@ export interface Finding {
   status: FindingStatus;
   reason?: string;
   decidedBy?: string;
+  /** The exact text inserted when the fix was applied (used for undo). */
+  applied?: string;
   /** Colour info for visual findings */
   swatches?: string[];
 }
