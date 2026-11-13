@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardCopy, Edit3, History, Info, Loader2,
   MessageSquare, Printer, RefreshCw, Scale, Send, ShieldCheck, Undo2, X,
 } from "lucide-react";
-import { useStore, requestReview, withVersion } from "@/lib/store";
+import { useStore, reviewItem, isAIPending } from "@/lib/store";
 import { applyFix, BUCKETS, readability } from "@/lib/engine";
 import { personFor } from "@/lib/seed";
 import { CATEGORY_LABEL, ClaimTag, Empty, OriginTag, ScoreRing, SeverityTag, StatusBadge, timeAgo } from "@/components/ui";
@@ -221,6 +221,7 @@ export default function ContentPage() {
   const canEditContent = isCreatorSide && !locked;
   const canDecide = (!locked && isCreatorSide) || (item.status === "in_review" && (role === "brand" || role === "legal" || role === "admin"));
   const dirty = latest && item.draftText !== latest.text;
+  const aiPending = isAIPending(latest?.meta);
   const model = latest?.meta?.model;
   const shown = [...(filter === "open" ? openF : findings)].sort((a, b) => (a.status === "open" ? 0 : 1) - (b.status === "open" ? 0 : 1) || SEV_ORDER[a.severity] - SEV_ORDER[b.severity]);
 
@@ -272,19 +273,16 @@ export default function ContentPage() {
 
   async function recheck(text: string, note: string) {
     setBusy(true);
-    const r = await requestReview({
-      text,
-      kit,
-      intent: { channel: item!.channel, audience: item!.audience, goal: item!.goal },
-      isImage: item!.format === "image",
-      imageDataUrl: item!.imageDataUrl,
-      altText: item!.altText,
-      imageAnalysis: item!.imageAnalysis,
+    const id = item!.id;
+    const nextN = item!.versions.length + 1;
+    await reviewItem(id, text, note, me.name, () => {
+      setBusy(false);
+      setEditing(false);
+      setToast(`Version ${nextN} checked by the rule engine.`);
     });
-    mutate(item!.id, (it) => withVersion(it, r.text ?? text, r.findings, r.meta, me.name, note, kit.version));
+    const v = useStore.getState().items.find((i) => i.id === id)?.versions.find((x) => x.n === nextN);
+    if (v?.meta?.mode === "hybrid" && !v.meta.aiPending && v.meta.aiProposed >= 0) setToast(`AI review for v${nextN} finished — ${v.findings.length} finding${v.findings.length === 1 ? "" : "s"} in total.`);
     setBusy(false);
-    setEditing(false);
-    setToast(`Version ${item!.versions.length + 1} checked — ${r.findings.length} finding${r.findings.length === 1 ? "" : "s"}.`);
   }
 
   const submitForReview = () =>
@@ -385,8 +383,8 @@ export default function ContentPage() {
               </button>
               <button
                 className="btn-primary"
-                disabled={busy || openHigh.length > 0 || Boolean(dirty)}
-                title={openHigh.length ? "Resolve or override all HIGH issues first" : dirty ? "Re-check your latest edits first" : ""}
+                disabled={busy || aiPending || openHigh.length > 0 || Boolean(dirty)}
+                title={aiPending ? "Wait for the AI review to finish" : openHigh.length ? "Resolve or override all HIGH issues first" : dirty ? "Re-check your latest edits first" : ""}
                 onClick={submitForReview}
               >
                 <Send size={14} /> Submit for review
@@ -560,9 +558,9 @@ export default function ContentPage() {
             {tab === "details" && latest?.meta && (
               <div className="space-y-3 text-sm">
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <Stat label="Mode" value={latest.meta.mode === "hybrid" ? "Rule engine + AI + verifier" : "Rule engine only"} />
+                  <Stat label="Mode" value={aiPending ? "Rule engine done · AI still running…" : latest.meta.mode === "hybrid" ? "Rule engine + AI + verifier" : "Rule engine only"} />
                   <Stat label="Model" value={latest.meta.model ?? "none"} />
-                  <Stat label="Time" value={`${latest.meta.ms} ms`} />
+                  <Stat label="AI time" value={aiPending ? "running…" : latest.meta.model ? `${(latest.meta.ms / 1000).toFixed(1)} s` : "—"} />
                   <Stat label="Rule-engine findings" value={String(latest.findings.filter((f) => f.origin === "rule").length)} />
                   <Stat label="AI findings proposed → kept" value={`${latest.meta.aiProposed} → ${latest.meta.aiKept}`} />
                   <Stat label="Private items masked before AI" value={String(latest.meta.redactions)} />
@@ -610,6 +608,12 @@ export default function ContentPage() {
               <button onClick={() => setFilter("all")} className={`rounded-md px-2 py-1 ${filter === "all" ? "bg-nova-soft font-semibold text-nova" : ""}`}>All</button>
             </div>
           </div>
+          {aiPending && (
+            <p className="flex items-center gap-2 rounded-lg bg-nova-soft p-2.5 text-xs text-nova">
+              <Loader2 size={14} className="shrink-0 animate-spin" />
+              Rule-engine results are ready. The AI reviewer is still checking tone, messaging and claims — its findings and fixes will appear here automatically.
+            </p>
+          )}
           {latest?.meta?.mode === "rules-only" && latest.meta.note && (
             <p className="flex gap-2 rounded-lg bg-slate-100 p-2.5 text-xs text-slate-600"><Info size={14} className="shrink-0" /> {latest.meta.note}</p>
           )}

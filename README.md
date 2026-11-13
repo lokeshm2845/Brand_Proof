@@ -19,7 +19,8 @@ Other things to try: **New check → Off-brand ad creative (image)**, the downlo
 - **Brand Kit:** 17 rules, glossary, Fact Vault with source / owner / re-verify dates, palette, confidential terms. Versioned on every save.
 - **AI rule import:** brand-book text is turned into draft rules that an admin must approve. A heuristic fallback runs when no AI key is set.
 - **Content intake:** pasted text, DOCX, PDF (text extracted in memory, never stored) and PNG/JPG creatives.
-- **Hybrid review engine:** deterministic rule engine → TF-IDF rule retrieval → Gemini reviewer with a JSON schema at temperature 0 → **verifier**.
+- **Hybrid review engine:** deterministic rule engine (runs in the browser, results in under a second) → TF-IDF rule retrieval → Gemini reviewer with a JSON schema at temperature 0, running in the background → **verifier** (also withholds AI fixes that wouldn't read correctly in place). Results are merged into the same version when ready.
+- **Model resilience:** `gemini-3.1-flash-lite` with an automatic fallback chain (`gemini-3.8-flash`, `gemini-3.5-flash`) on 404/429/503/timeout, capped at a 35 s budget.
 - **Explainable findings:** severity, Rule-engine/AI badge, rule ID with explanation, claim status (supported / contradicted / outdated / unsupported), confidence, and a before→after fix.
 - **Human decisions:** accept fix, edit fix, or override with a required reason. Undo is supported. Re-check creates a new version.
 - **Image checks:** dominant colours vs the brand palette (CIE ΔE), contrast estimate, missing alt text. With AI enabled: reads the text on the creative and drafts alt text.
@@ -48,6 +49,8 @@ cp .env.example .env.local     # optional: add GEMINI_API_KEY for hybrid mode
 npm run dev                    # http://localhost:3000
 npm run eval                   # rule-engine precision/recall on eval/testset.json
 npm run test:verifier          # proves the verifier drops hallucinated AI output (mocked Gemini)
+npm run test:fit               # unit tests for the "AI fix fits in place" guard
+npm run test:ai-live           # live AI check against a running server (needs GEMINI_API_KEY)
 ```
 
 ## Measured quality

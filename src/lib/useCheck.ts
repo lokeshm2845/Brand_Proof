@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { newItem, requestReview, useStore, withVersion } from "./store";
+import { newItem, reviewItem, useStore } from "./store";
 import { personFor } from "./seed";
 import type { ContentItem } from "./types";
 
@@ -18,7 +18,7 @@ export interface CheckInput {
   altText?: string;
 }
 
-/** Creates a content item, runs the brand check, and opens the review screen. */
+/** Creates a content item, runs the brand check, and opens the review screen as soon as results exist. */
 export function useCreateCheck() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -30,7 +30,7 @@ export function useCreateCheck() {
     try {
       // Content is always created by a creator; reviewers acting here are switched to Aisha.
       if (useStore.getState().role === "brand" || useStore.getState().role === "legal") useStore.getState().setRole("creator");
-      const { kit, role, addItem, mutate } = useStore.getState();
+      const { kit, role, addItem } = useStore.getState();
       const item = newItem(
         {
           title: input.title || "Untitled content",
@@ -48,17 +48,20 @@ export function useCreateCheck() {
         kit.version,
       );
       addItem(item);
-      const r = await requestReview({
-        text: input.text,
-        kit,
-        intent: { channel: input.channel, audience: input.audience, goal: input.goal },
-        isImage: input.format === "image",
-        imageDataUrl: input.imageDataUrl,
-        altText: input.altText,
-        imageAnalysis: input.imageAnalysis,
-      });
-      mutate(item.id, (it) => withVersion(it, r.text ?? input.text, r.findings, r.meta, personFor(role).name, "First brand check", kit.version));
-      router.push(`/content/${item.id}`);
+      let opened = false;
+      const open = () => {
+        if (!opened) {
+          opened = true;
+          router.push(`/content/${item.id}`);
+        }
+      };
+      // The AI layer keeps running after the page opens and merges its findings in.
+      reviewItem(item.id, input.text, "First brand check", personFor(role).name, open)
+        .then(open)
+        .catch((e) => {
+          setError(String(e?.message ?? e));
+          setBusy(false);
+        });
     } catch (e: any) {
       setError(String(e?.message ?? e));
       setBusy(false);

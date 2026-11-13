@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "eval": "tsx scripts/eval.ts",
-    "test:verifier": "tsx --conditions=react-server scripts/verifier-test.ts"
+    "test:verifier": "tsx --conditions=react-server scripts/verifier-test.ts",
+    "test:fit": "tsx --conditions=react-server scripts/fit-test.ts",
+    "test:ai-live": "tsx scripts/ai-live-test.ts"
   },
   "dependencies": {
     "@types/diff": "^6.0.0",

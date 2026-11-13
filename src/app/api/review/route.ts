@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { aiReview, hasAI, MODEL, readCreative } from "@/lib/ai";
+import { aiReview, hasAI, readCreative } from "@/lib/ai";
 import { runRuleEngine } from "@/lib/engine";
 import type { BrandKit, Finding, ImageAnalysis, ReviewMeta } from "@/lib/types";
 
@@ -14,6 +14,13 @@ interface Body {
   imageDataUrl?: string;
   altText?: string;
   imageAnalysis?: ImageAnalysis;
+  /**
+   * "all" (default): vision + rule engine + AI in one blocking call.
+   * "ai": the browser already ran the rule engine and sends its findings; only the AI layer runs here,
+   *       so the user sees rule results instantly and AI results are merged in when they arrive.
+   */
+  layers?: "all" | "ai";
+  ruleFindings?: Finding[];
 }
 
 export async function POST(req: Request) {
@@ -27,10 +34,10 @@ export async function POST(req: Request) {
   const { kit } = body;
   if (!kit?.rules) return NextResponse.json({ error: "Missing brand kit" }, { status: 400 });
   let text = (body.text ?? "").slice(0, 20000);
+  const aiOnly = body.layers === "ai" && Array.isArray(body.ruleFindings);
 
   const meta: ReviewMeta = {
     mode: hasAI() ? "hybrid" : "rules-only",
-    model: hasAI() ? MODEL : undefined,
     aiProposed: 0,
     aiKept: 0,
     aiDropped: [],
@@ -43,26 +50,24 @@ export async function POST(req: Request) {
   if (body.isImage && body.imageDataUrl && hasAI()) {
     try {
       const v = await readCreative(body.imageDataUrl);
-      if (!text.trim() && v?.text_in_image) {
+      if (!aiOnly && !text.trim() && v?.text_in_image) {
         text = String(v.text_in_image);
         meta.extractedText = text;
         notes.push("Text was read from the creative by the vision model — please confirm it is correct.");
       }
       if (v?.alt_text) meta.altTextSuggestion = String(v.alt_text);
-    } catch (e) {
-      notes.push("Could not read text from the image with AI; checks ran on the text you entered.");
+    } catch {
+      notes.push("Could not read the image with AI (no alt-text draft).");
     }
   }
 
-  // 2) Deterministic layer
-  const ruleFindings: Finding[] = runRuleEngine(text, kit, {
-    isImage: body.isImage,
-    altText: body.altText,
-    image: body.imageAnalysis,
-  });
+  // 2) Deterministic layer (or the browser's copy of it)
+  const ruleFindings: Finding[] = aiOnly
+    ? (body.ruleFindings as Finding[]).slice(0, 200)
+    : runRuleEngine(text, kit, { isImage: body.isImage, altText: body.altText, image: body.imageAnalysis });
   if (meta.altTextSuggestion) {
     const a3 = ruleFindings.find((f) => f.ruleId === "A-03");
-    if (a3) {
+    if (a3 && a3.suggestion === undefined) {
       a3.suggestion = meta.altTextSuggestion;
       a3.suggestionBy = "ai";
     }
@@ -77,7 +82,8 @@ export async function POST(req: Request) {
       Object.assign(meta, r.meta);
     } catch (e: any) {
       meta.mode = "rules-only";
-      notes.push(`AI reviewer unavailable (${String(e?.message ?? e).slice(0, 80)}). Showing rule-engine results only.`);
+      meta.model = undefined;
+      notes.push(`AI reviewer unavailable (${String(e?.message ?? e).slice(0, 140)}). Showing rule-engine results only.`);
     }
   } else if (!hasAI()) {
     notes.push("AI layer is switched off on this deployment (no API key). All findings come from the deterministic rule engine.");

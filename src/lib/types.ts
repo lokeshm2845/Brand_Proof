@@ -114,6 +114,9 @@ export interface ReviewMeta {
   note?: string;
   extractedText?: string;
   altTextSuggestion?: string;
+  /** True while the AI layer is still running in the background for this version. */
+  aiPending?: boolean;
+  startedAt?: string;
 }
 
 export interface Version {

@@ -195,6 +195,80 @@ export const useStore = create<State>()(
   ),
 );
 
+let aiStatus: Promise<boolean> | null = null;
+export function aiEnabled(): Promise<boolean> {
+  aiStatus ??= fetch("/api/status")
+    .then((r) => r.json())
+    .then((j) => Boolean(j.ai))
+    .catch(() => false);
+  return aiStatus;
+}
+
+/** Version is waiting on the AI layer (ignores stale flags left by a page reload). */
+export function isAIPending(meta?: ReviewMeta) {
+  return Boolean(meta?.aiPending && meta.startedAt && Date.now() - new Date(meta.startedAt).getTime() < 90_000);
+}
+
+/**
+ * Runs a brand check on an item and saves it as a new version.
+ * Rule-engine results appear instantly (computed in the browser); when AI is enabled the AI layer
+ * runs in the background and its findings and fixes are merged into the same version on arrival.
+ */
+export async function reviewItem(itemId: string, text: string, note: string, by: string, onReady?: () => void): Promise<void> {
+  const { kit, mutate } = useStore.getState();
+  const it = useStore.getState().items.find((i) => i.id === itemId);
+  if (!it) return;
+  const intent = { channel: it.channel, audience: it.audience, goal: it.goal };
+  const isImage = it.format === "image";
+  const ai = await aiEnabled();
+
+  // An image with no typed text needs the vision model to read it first, so that path stays blocking.
+  if (!ai || (isImage && !text.trim())) {
+    const r = await requestReview({ text, kit, intent, isImage, imageDataUrl: it.imageDataUrl, altText: it.altText, imageAnalysis: it.imageAnalysis });
+    mutate(itemId, (x) => withVersion(x, r.text ?? text, r.findings, r.meta, by, note, kit.version));
+    onReady?.();
+    return;
+  }
+
+  const ruleFindings = runRuleEngine(text, kit, { isImage, altText: it.altText, image: it.imageAnalysis });
+  const startedAt = new Date().toISOString();
+  let n = 0;
+  mutate(itemId, (x) => {
+    withVersion(x, text, ruleFindings, { mode: "hybrid", aiProposed: 0, aiKept: 0, aiDropped: [], redactions: 0, ms: 0, aiPending: true, startedAt }, by, note, kit.version);
+    n = x.versions.length;
+  });
+  onReady?.();
+
+  const r = await requestReview({
+    text, kit, intent, isImage, imageDataUrl: it.imageDataUrl, altText: it.altText, imageAnalysis: it.imageAnalysis,
+    layers: "ai", ruleFindings,
+  });
+  mutate(itemId, (x) => {
+    const v = x.versions.find((vv) => vv.n === n);
+    if (!v) return;
+    const byId = new Map(r.findings.map((f) => [f.id, f]));
+    // Update rule findings the user hasn't decided yet (AI may have added a fix or widened the quote).
+    v.findings = v.findings.map((f) => {
+      const u = byId.get(f.id);
+      if (!u || f.status !== "open") return f;
+      return { ...f, quote: u.quote, suggestion: u.suggestion, suggestionBy: u.suggestionBy };
+    });
+    const known = new Set(v.findings.map((f) => f.id));
+    const added = r.findings.filter((f) => !known.has(f.id) && f.origin === "ai");
+    v.findings.push(...added);
+    v.meta = { ...r.meta, aiPending: false, startedAt };
+    v.score = score(v.findings);
+    x.needsLegal = x.needsLegal || added.some((f) => f.routeTo === "legal");
+    x.audit.push({
+      at: new Date().toISOString(),
+      by: "BrandProof",
+      action: r.meta.mode === "hybrid"
+        ? `AI review for v${n}: ${added.length} new finding${added.length === 1 ? "" : "s"}, ${r.meta.aiDropped.length} filtered by the verifier (${r.meta.model}, ${(r.meta.ms / 1000).toFixed(1)}s)`
+        : `AI review for v${n} unavailable — rule-engine results stand`,
+    });
+  });
+}
+
 /** Calls the review API and returns findings + meta. */
 export async function requestReview(payload: {
   text: string;
@@ -204,6 +278,8 @@ export async function requestReview(payload: {
   imageDataUrl?: string;
   altText?: string;
   imageAnalysis?: ContentItem["imageAnalysis"];
+  layers?: "all" | "ai";
+  ruleFindings?: Finding[];
 }): Promise<{ findings: Finding[]; meta: ReviewMeta; text: string }> {
   try {
     const res = await fetch("/api/review", {
