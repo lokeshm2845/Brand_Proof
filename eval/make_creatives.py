@@ -94,5 +94,24 @@ for i, (hs, bs) in enumerate([(20, 16), (18, 15), (19, 14)]):
 creative("no-logo-1", CLOUD, None, issues=["LOGO_MISSING"])
 creative("no-logo-2", WHITE, None, headline="Festive offers", issues=["LOGO_MISSING"])
 
+
+# 8) two-colour creatives: a coloured footer band with its own text (OCR must read the band separately)
+def banded(name, band_col, band_text_col, issues):
+    im = Image.new("RGB", (S, S), CLOUD)
+    lg = cur.resize((220, int(220 * cur.height / cur.width)), Image.LANCZOS)
+    im.paste(lg, (50, 50), lg)
+    d = ImageDraw.Draw(im)
+    d.text((50, 300), "Split bills in seconds", font=font(64), fill=MIDNIGHT)
+    d.rectangle([0, 540, S, S], fill=band_col)
+    d.text((50, 600), "Download PayNova today", font=font(52), fill=band_text_col)
+    d.text((50, 690), "Available on Android and iOS", font=font(34, bold=False), fill=band_text_col)
+    im.save(os.path.join(OUT, name + ".png"))
+    labels.append({"file": name + ".png", "issues": sorted(issues)})
+
+banded("band-ok-1", INDIGO, WHITE, [])
+banded("band-ok-2", MIDNIGHT, AMBER, [])
+banded("band-low-contrast-1", AMBER, WHITE, ["TEXT_CONTRAST"])
+banded("band-low-contrast-2", "#FF2D95", "#FFB3D9", ["TEXT_CONTRAST"])
+
 json.dump(labels, open(os.path.join(OUT, "labels.json"), "w"), indent=1)
 print(len(labels), "creatives written to", OUT)

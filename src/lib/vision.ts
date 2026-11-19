@@ -441,6 +441,53 @@ export function mergeOcrLines(a: OcrLine[], b: OcrLine[]): OcrLine[] {
   return out.sort((p, q) => p.bbox.y0 - q.bbox.y0 || p.bbox.x0 - q.bbox.x0);
 }
 
+/**
+ * Splits a creative into horizontal bands with different background colours (e.g. a yellow top
+ * and a pink footer). OCR engines often skip text on a secondary background, so each band is
+ * read separately. Returns [] when the whole image has one background.
+ */
+export function colourBands(img: RGBAImage, minFrac = 0.08): { y0: number; y1: number }[] {
+  const { width: W, height: H, data } = img;
+  const rowBg: [number, number, number][] = [];
+  for (let y = 0; y < H; y++) {
+    const counts = new Map<number, { n: number; r: number; g: number; b: number }>();
+    for (let x = 0; x < W; x += 3) {
+      const i = (y * W + x) * 4;
+      const k = ((data[i] >> 4) << 8) | ((data[i + 1] >> 4) << 4) | (data[i + 2] >> 4);
+      const c = counts.get(k) ?? { n: 0, r: 0, g: 0, b: 0 };
+      c.n++; c.r += data[i]; c.g += data[i + 1]; c.b += data[i + 2];
+      counts.set(k, c);
+    }
+    let best = { n: 0, r: 0, g: 0, b: 0 };
+    counts.forEach((c) => { if (c.n > best.n) best = c; });
+    rowBg.push(rgbToLab(best.r / best.n, best.g / best.n, best.b / best.n));
+  }
+  const cuts: number[] = [0];
+  let ref = rowBg[0];
+  for (let y = 1; y < H; y++) {
+    if (deltaE(rowBg[y], ref) > 25) {
+      // require the new background to persist for a few rows (ignore single text rows)
+      const end = Math.min(H, y + 4);
+      let stable = true;
+      for (let k = y; k < end; k++) if (deltaE(rowBg[k], rowBg[y]) > 12) stable = false;
+      if (stable) { cuts.push(y); ref = rowBg[y]; }
+    }
+  }
+  cuts.push(H);
+  const bands = [];
+  for (let i = 0; i < cuts.length - 1; i++) if (cuts[i + 1] - cuts[i] >= H * minFrac) bands.push({ y0: cuts[i], y1: cuts[i + 1] });
+  return bands.length > 1 ? bands : [];
+}
+
+export function cropRows(img: RGBAImage, y0: number, y1: number): RGBAImage {
+  const W = img.width;
+  return { data: img.data.slice(y0 * W * 4, y1 * W * 4), width: W, height: y1 - y0 };
+}
+
+/** Shifts OCR line boxes from a cropped band back to full-image coordinates. */
+export const offsetLines = (lines: OcrLine[], dy: number): OcrLine[] =>
+  lines.map((l) => ({ ...l, bbox: { x0: l.bbox.x0, x1: l.bbox.x1, y0: l.bbox.y0 + dy, y1: l.bbox.y1 + dy } }));
+
 /** Drops OCR lines whose centre lies inside the detected logo (wordmark text is part of the logo). */
 export function excludeLogoLines(lines: OcrLine[], logo: LogoResult | undefined, width: number, height: number): OcrLine[] {
   const lb = logo?.found ? logo.box : undefined;

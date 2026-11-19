@@ -28,6 +28,7 @@ export interface VisualIssue {
 }
 
 export const STRETCH_TOLERANCE = 0.15;
+export const MIN_RENDERED_PX_PRINT = 6;
 export const RECOLOUR_DELTA_E = 25;
 
 export function visualIssues({ logo, blocks, hasLogos, page }: { logo?: LogoResult; blocks: TextBlock[]; hasLogos: boolean; page?: number }): VisualIssue[] {
@@ -80,11 +81,13 @@ export function visualIssues({ logo, blocks, hasLogos, page }: { logo?: LogoResu
         quote: b.text,
       });
     }
-    if (b.renderedPx < MIN_RENDERED_PX) {
+    // Printed pages (PDF) are read zoomed in, so they get a lower floor than social creatives.
+    const minPx = page ? MIN_RENDERED_PX_PRINT : MIN_RENDERED_PX;
+    if (b.renderedPx < minPx) {
       out.push({
         code: "TEXT_SMALL",
-        message: `Text too small on a phone${where}`,
-        detail: `"${b.text.slice(0, 60)}" renders about ${b.renderedPx.toFixed(0)} px tall when the creative is shown 375 px wide in a mobile feed (minimum ${MIN_RENDERED_PX} px).`,
+        message: `Text too small to read${page ? "" : " on a phone"}${where}`,
+        detail: `"${b.text.slice(0, 60)}" renders about ${b.renderedPx.toFixed(0)} px tall when the ${page ? "page" : "creative"} is shown 375 px wide on a phone (minimum ${minPx} px${page ? " for documents" : " for feed creatives"}).`,
         box: b.box,
         quote: b.text,
       });

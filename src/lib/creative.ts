@@ -4,7 +4,7 @@
  * logo and OCR text-block analysis, and renders PDF pages. Everything runs on the user's device.
  */
 import { analyzeImage } from "./image";
-import { analyzeTextBlocks, excludeLogoLines, findLogo, mergeOcrLines, trimLogo, type LogoTemplate, type OcrLine, type RGBAImage } from "./vision";
+import { analyzeTextBlocks, colourBands, cropRows, excludeLogoLines, findLogo, mergeOcrLines, offsetLines, trimLogo, type LogoTemplate, type OcrLine, type RGBAImage } from "./vision";
 import type { BrandKit, CreativePage, ImageAnalysis } from "./types";
 
 export type Progress = (step: string) => void;
@@ -92,23 +92,20 @@ export async function analyzeCreative(dataUrl: string, kit: BrandKit, progress: 
   try {
     const t0 = performance.now();
     // OCR at the same resolution the measurements use, so boxes line up
-    const c = document.createElement("canvas");
-    c.width = rgba.width;
-    c.height = rgba.height;
-    const ctx = c.getContext("2d")!;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba.data), rgba.width, rgba.height), 0, 0);
-    const first = await ocr(c.toDataURL("image/png"));
-    // Second pass on the inverted image catches light text on dark or saturated backgrounds,
-    // which a single global threshold tends to miss.
-    const inv = ctx.getImageData(0, 0, c.width, c.height);
-    for (let i = 0; i < inv.data.length; i += 4) {
-      inv.data[i] = 255 - inv.data[i];
-      inv.data[i + 1] = 255 - inv.data[i + 1];
-      inv.data[i + 2] = 255 - inv.data[i + 2];
+    const toUrl = (im: RGBAImage) => {
+      const c = document.createElement("canvas");
+      c.width = im.width;
+      c.height = im.height;
+      c.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(im.data), im.width, im.height), 0, 0);
+      return c.toDataURL("image/png");
+    };
+    let lines = await ocr(toUrl(rgba));
+    // OCR engines often skip text on a second background colour (e.g. a coloured footer band),
+    // so each background band is read again on its own and the results are merged.
+    for (const band of colourBands(rgba)) {
+      const part = await ocr(toUrl(cropRows(rgba, band.y0, band.y1)));
+      lines = mergeOcrLines(lines, offsetLines(part, band.y0));
     }
-    ctx.putImageData(inv, 0, 0);
-    const second = await ocr(c.toDataURL("image/png"));
-    const lines = mergeOcrLines(first, second);
     // Text that belongs to the logo artwork is checked by the logo rules, not as content text
     const content = excludeLogoLines(lines, result.logo, rgba.width, rgba.height);
     result.blocks = analyzeTextBlocks(rgba, content, page);

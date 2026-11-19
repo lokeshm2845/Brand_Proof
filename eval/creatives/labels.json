@@ -144,5 +144,25 @@
   "issues": [
    "LOGO_MISSING"
   ]
+ },
+ {
+  "file": "band-ok-1.png",
+  "issues": []
+ },
+ {
+  "file": "band-ok-2.png",
+  "issues": []
+ },
+ {
+  "file": "band-low-contrast-1.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
+ },
+ {
+  "file": "band-low-contrast-2.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
  }
 ]

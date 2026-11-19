@@ -2,7 +2,7 @@
 // Run: npm run eval:visual        (add --no-ocr to evaluate logo checks only)
 import { readFileSync } from "fs";
 import { PNG } from "pngjs";
-import { analyzeTextBlocks, excludeLogoLines, findLogo, mergeOcrLines, trimLogo, type LogoTemplate, type OcrLine, type RGBAImage } from "../src/lib/vision";
+import { analyzeTextBlocks, colourBands, cropRows, excludeLogoLines, findLogo, mergeOcrLines, offsetLines, trimLogo, type LogoTemplate, type OcrLine, type RGBAImage } from "../src/lib/vision";
 import { visualIssues, type VisualIssueCode } from "../src/lib/visualRules";
 
 const load = (p: string): RGBAImage => {
@@ -33,13 +33,12 @@ const CODES: VisualIssueCode[] = ["LOGO_OUTDATED", "LOGO_STRETCHED", "LOGO_RECOL
     const logo = findLogo(img, templates);
     let lines: OcrLine[] = [];
     if (worker) {
-      // same two passes as the app: original + inverted, merged, minus the logo's own wordmark
+      // same passes as the app: whole image, then each background-colour band, merged, minus the logo wordmark
       const toLines = (data: any): OcrLine[] => (data.lines ?? []).map((ln: any) => ({ text: ln.text, confidence: ln.confidence, bbox: ln.bbox }));
-      const first = toLines((await worker.recognize(`eval/creatives/${l.file}`)).data);
-      const png = PNG.sync.read(readFileSync(`eval/creatives/${l.file}`));
-      for (let i = 0; i < png.data.length; i += 4) { png.data[i] = 255 - png.data[i]; png.data[i + 1] = 255 - png.data[i + 1]; png.data[i + 2] = 255 - png.data[i + 2]; }
-      const second = toLines((await worker.recognize(PNG.sync.write(png))).data);
-      lines = excludeLogoLines(mergeOcrLines(first, second), logo, img.width, img.height);
+      const enc = (im: RGBAImage) => { const p = new PNG({ width: im.width, height: im.height }); Buffer.from(im.data).copy(p.data); return PNG.sync.write(p); };
+      let all = toLines((await worker.recognize(`eval/creatives/${l.file}`)).data);
+      for (const band of colourBands(img)) all = mergeOcrLines(all, offsetLines(toLines((await worker.recognize(enc(cropRows(img, band.y0, band.y1)))).data), band.y0));
+      lines = excludeLogoLines(all, logo, img.width, img.height);
     }
     const blocks = analyzeTextBlocks(img, lines);
     const got = new Set(visualIssues({ logo, blocks, hasLogos: true }).map((i) => i.code).filter((c) => useOcr || c.startsWith("LOGO")));
