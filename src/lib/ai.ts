@@ -4,7 +4,7 @@
  * user unless they cite a real rule and quote text that actually exists in the content.
  */
 import "server-only";
-import { retrieveRules, runRuleEngine, spanOverlap, uid } from "./engine";
+import { applyExceptions, retrieveRules, runRuleEngine, spanOverlap, uid } from "./engine";
 import type { BrandKit, Finding, ReviewMeta, Rule, Severity } from "./types";
 
 export const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
@@ -381,7 +381,10 @@ export async function aiReview(
   const prompt = buildPrompt(red.text, kit, rules, intent, ruleFindings.filter((f) => f.quote));
   const out = await gemini([{ text: prompt }], FINDINGS_SCHEMA, 35000);
   const raw: any[] = Array.isArray(out?.findings) ? out.findings : [];
-  const { kept, dropped } = verify(raw, text, kit, rules, ruleFindings, red.restore);
+  const verified = verify(raw, text, kit, rules, ruleFindings, red.restore);
+  // approved rule exceptions apply to AI findings too
+  const kept = applyExceptions(verified.kept, text, kit);
+  const dropped = [...verified.dropped, ...verified.kept.filter((k) => !kept.includes(k)).map((k) => ({ reason: `covered by an approved exception to ${k.ruleId}`, quote: k.quote }))];
   const meta: ReviewMeta = {
     mode: "hybrid",
     model: lastModel,
@@ -430,4 +433,54 @@ export async function aiExtractRules(guideline: string) {
     40000,
   );
   return (out?.rules ?? []) as any[];
+}
+
+
+// ---------------- self-improving Brand Kit: themes + rewrite ----------------
+const REWRITE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    themes: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { theme: { type: "STRING" }, count: { type: "NUMBER" }, examples: { type: "ARRAY", items: { type: "STRING" } } },
+        required: ["theme", "count"],
+      },
+    },
+    title: { type: "STRING" },
+    description: { type: "STRING" },
+    exception_note: { type: "STRING" },
+    exception_patterns: { type: "ARRAY", items: { type: "STRING" } },
+    scope: { type: "STRING", enum: ["sentence", "content"] },
+  },
+  required: ["themes", "title", "description", "exception_note", "exception_patterns", "scope"],
+};
+
+export async function aiRewriteRule(rule: Rule, overridden: { reason: string; sentence: string; content?: string }[], accepted: { sentence: string }[]) {
+  const prompt = `You maintain a brand guideline. Reviewers keep overriding rule ${rule.id}.
+
+RULE ${rule.id} — "${rule.title}": ${rule.description}
+
+OVERRIDES (the rule fired, a human said it was wrong, and why):
+${overridden.map((o, i) => `${i + 1}. Flagged sentence: "${o.sentence}"\n   Full content: "${o.content ?? o.sentence}"\n   Reason: "${o.reason}"`).join("\n")}
+
+CORRECT FLAGS (the rule fired and a human agreed — these MUST still be caught):
+${accepted.length ? accepted.map((a, i) => `${i + 1}. "${a.sentence}"`).join("\n") : "none recorded"}
+
+TASKS:
+1. Group the override reasons into short themes with counts.
+2. Rewrite the rule so it stays strict but states the exception the overrides reveal. Keep the original intent.
+3. Write 1-6 JavaScript regular expressions (case-insensitive, no slashes or flags) that detect the exception in text, so the rule engine can skip those cases. They must match the override sentences/content and must NOT match the correct flags.
+4. scope: "sentence" if the exception is always visible in the flagged sentence itself, "content" if it can appear elsewhere in the full content (e.g. a deadline stated in the next sentence). Check every override's full content before choosing.
+Return JSON.`;
+  const out = await gemini([{ text: prompt }], REWRITE_SCHEMA, 40000);
+  return out as {
+    themes: { theme: string; count: number; examples?: string[] }[];
+    title: string;
+    description: string;
+    exception_note: string;
+    exception_patterns: string[];
+    scope: "sentence" | "content";
+  };
 }

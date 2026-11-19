@@ -11,7 +11,8 @@
     "test:verifier": "tsx --conditions=react-server scripts/verifier-test.ts",
     "test:fit": "tsx --conditions=react-server scripts/fit-test.ts",
     "test:ai-live": "tsx scripts/ai-live-test.ts",
-    "eval:visual": "tsx scripts/eval-visual.ts"
+    "eval:visual": "tsx scripts/eval-visual.ts",
+    "test:rules": "tsx scripts/rule-improve-test.ts"
   },
   "dependencies": {
     "@types/diff": "^6.0.0",

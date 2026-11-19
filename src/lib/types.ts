@@ -25,6 +25,23 @@ export interface Rule {
   dontExample?: string;
   /** Rules created by AI extraction stay "draft" until an admin approves them. */
   status?: "approved" | "draft";
+  /**
+   * Approved exceptions (Round 3, self-improving Brand Kit): when any pattern matches the sentence
+   * that contains a finding, the finding is not raised. Written by an admin, optionally drafted by AI
+   * from reviewers' override reasons and checked with an impact preview before approval.
+   */
+  exceptions?: { note: string; patterns: string[]; scope?: "sentence" | "content"; addedInVersion?: number }[];
+}
+
+/** A rule change made through the Guideline Gap Detector, kept for before/after tracking. */
+export interface RuleChange {
+  ruleId: string;
+  version: number;
+  at: string;
+  by: string;
+  summary: string;
+  before: { description: string; overrideRate: number; decisions: number };
+  projected: { overrideRate: number; removedOverrides: number; missedAccepted: number };
 }
 
 export interface GlossaryTerm {
@@ -67,6 +84,7 @@ export interface BrandKit {
   confidentialTerms: string[];
   competitorNames: string[];
   logos?: BrandLogo[];
+  ruleChanges?: RuleChange[];
   updatedAt: string;
 }
 
@@ -183,6 +201,8 @@ export interface AuditEntry {
 
 export interface Decision {
   ruleId?: string;
+  /** Brand Kit version the finding was produced under (for before/after tracking). */
+  kitVersion?: number;
   category: Category;
   action: FindingStatus;
   reason?: string;

@@ -251,7 +251,7 @@ export default function ContentPage() {
       ff.reason = opts.reason;
       ff.decidedBy = me.name;
       v.score = { ...v.score };
-      it.decisions.push({ ruleId: ff.ruleId, category: ff.category, action, reason: opts.reason, by: me.name, at: new Date().toISOString(), origin: ff.origin });
+      it.decisions.push({ ruleId: ff.ruleId, kitVersion: it.kitVersion, category: ff.category, action, reason: opts.reason, by: me.name, at: new Date().toISOString(), origin: ff.origin });
       it.audit.push({
         at: new Date().toISOString(),
         by: me.name,

@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useMemo } from "react";
-import { AlertTriangle, Lightbulb } from "lucide-react";
+import { AlertTriangle, ArrowRight, Lightbulb, TrendingDown } from "lucide-react";
+import { ruleStats } from "@/lib/ruleQuality";
 import { useStore } from "@/lib/store";
 import { CATEGORY_LABEL, Empty } from "@/components/ui";
 import type { Category } from "@/lib/types";
@@ -71,6 +72,12 @@ export default function Insights() {
   const maxCat = Math.max(1, ...Object.values(d.byCat));
   const topRules = Object.entries(d.byRule).sort((a, b) => b[1] - a[1]).slice(0, 8);
   const ruleTitle = (id: string) => kit.rules.find((r) => r.id === id)?.title ?? id;
+  const quality = useMemo(() => ruleStats(items, kit).filter((r) => r.fired > 0), [items, kit]);
+  // Actual override rate on decisions made after each rule change (kitVersion recorded on decisions)
+  const afterRate = (ruleId: string, version: number) => {
+    const ds = items.flatMap((i) => i.decisions).filter((d) => d.ruleId === ruleId && (d.kitVersion ?? 0) >= version);
+    return ds.length ? { n: ds.length, rate: ds.filter((d) => d.action === "rejected").length / ds.length } : null;
+  };
 
   if (!items.length) return <Empty>No checks yet. <Link className="text-nova underline" href="/new">Run your first check</Link>.</Empty>;
 
@@ -117,11 +124,70 @@ export default function Insights() {
                 <i>
                   &quot;{ruleTitle(g.id)} — unless {g.reasons.join(" ").match(/real|genuine|factual|ends|deadline/i) ? "the deadline is real and the end date is stated in the content" : "the brand team has documented an exception"}.&quot;
                 </i>{" "}
-                <Link href="/brand-kit" className="text-nova underline">Update the rule in the Brand Kit</Link>
+                <Link href={`/improve/${g.id}`} className="btn-primary ml-1 mt-2 inline-flex px-3 py-1.5 text-xs">
+                  Fix this rule — draft, preview impact, publish <ArrowRight size={13} />
+                </Link>
               </p>
             </div>
           ))
         )}
+      </div>
+
+      {(kit.ruleChanges ?? []).length > 0 && (
+        <div className="card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <TrendingDown className="text-emerald-600" size={18} />
+            <h2 className="font-bold">Rules improved from feedback</h2>
+          </div>
+          <div className="space-y-2">
+            {kit.ruleChanges!.map((c) => {
+              const after = afterRate(c.ruleId, c.version);
+              return (
+                <div key={c.ruleId + c.version} className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm">
+                  <p className="font-semibold">
+                    {c.ruleId} · {ruleTitle(c.ruleId)} <span className="font-normal text-slate-500">— Brand Kit v{c.version}, by {c.by}</span>
+                  </p>
+                  <p className="text-slate-600">{c.summary}</p>
+                  <p className="mt-1">
+                    Override rate <b>{Math.round(c.before.overrideRate * 100)}%</b> before → <b className="text-emerald-700">{Math.round(c.projected.overrideRate * 100)}%</b> when re-run on past content
+                    {" · "}{c.projected.removedOverrides} pointless flag(s) removed, {c.projected.missedAccepted} real issue(s) missed
+                    {after ? ` · since then: ${Math.round(after.rate * 100)}% of ${after.n} new decision(s) were overrides` : " · no new decisions on this rule yet"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="card p-5">
+        <h2 className="mb-1 font-bold">Rule quality</h2>
+        <p className="mb-3 text-xs text-slate-500">How every rule performs: times fired across all versions, and what people did with its findings. A high override rate means the rule is unclear or too strict.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase text-slate-500">
+              <tr><th className="p-2">Rule</th><th className="p-2 text-right">Fired</th><th className="p-2 text-right">Fixed</th><th className="p-2 text-right">Overridden</th><th className="p-2 text-right">Undecided</th><th className="p-2">Override rate</th><th /></tr>
+            </thead>
+            <tbody>
+              {quality.map((q) => (
+                <tr key={q.ruleId} className="border-t">
+                  <td className="p-2"><span className="font-mono text-xs text-nova">{q.ruleId}</span> {q.title}</td>
+                  <td className="p-2 text-right">{q.fired}</td>
+                  <td className="p-2 text-right">{q.accepted + q.edited}</td>
+                  <td className="p-2 text-right">{q.overridden}</td>
+                  <td className="p-2 text-right text-slate-400">{q.open}</td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 rounded bg-slate-100"><div className={`h-2 rounded ${q.overrideRate >= 0.4 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ width: `${q.decisions ? q.overrideRate * 100 : 0}%` }} /></div>
+                      <span className="text-xs">{q.decisions ? `${Math.round(q.overrideRate * 100)}%` : "—"}</span>
+                    </div>
+                  </td>
+                  <td className="p-2 text-right">{q.overridden > 0 && <Link href={`/improve/${q.ruleId}`} className="text-xs text-nova hover:underline">Improve →</Link>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">

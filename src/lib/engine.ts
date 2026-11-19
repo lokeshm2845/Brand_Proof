@@ -109,6 +109,44 @@ export interface EngineOptions {
 }
 
 export function runRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): Finding[] {
+  return applyExceptions(rawRuleEngine(text, kit, opts), text, kit);
+}
+
+/** Sentence (or line) of `text` that contains `quote`; the whole text when the quote is empty. */
+export function sentenceOf(text: string, quote: string) {
+  if (!quote) return text;
+  const i = text.indexOf(quote);
+  if (i < 0) return text;
+  return sentenceAround(text, i).text;
+}
+
+export function compileExceptions(rule: Rule): { re: RegExp; scope: "sentence" | "content" }[] {
+  const out: { re: RegExp; scope: "sentence" | "content" }[] = [];
+  for (const ex of rule.exceptions ?? [])
+    for (const p of ex.patterns) {
+      try {
+        out.push({ re: new RegExp(p, "i"), scope: ex.scope ?? "sentence" });
+      } catch {
+        /* invalid pattern: ignored (the editor validates before saving) */
+      }
+    }
+  return out;
+}
+
+/** Drops findings whose rule has an approved exception matching the finding's sentence (or the whole content). */
+export function applyExceptions(findings: Finding[], text: string, kit: BrandKit): Finding[] {
+  const cache = new Map<string, ReturnType<typeof compileExceptions>>();
+  return findings.filter((f) => {
+    if (!f.ruleId) return true;
+    const rule = kit.rules.find((r) => r.id === f.ruleId);
+    if (!rule?.exceptions?.length) return true;
+    if (!cache.has(rule.id)) cache.set(rule.id, compileExceptions(rule));
+    const sentence = sentenceOf(text, f.quote);
+    return !cache.get(rule.id)!.some(({ re, scope }) => re.test(scope === "content" ? text : sentence));
+  });
+}
+
+function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): Finding[] {
   const out: Finding[] = [];
   const rules = kit.rules.filter((r) => r.status !== "draft");
   const R = (id: string) => rules.find((r) => r.id === id);
