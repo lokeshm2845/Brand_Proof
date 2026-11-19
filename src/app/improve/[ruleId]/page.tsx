@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, Loader2, Lock, RefreshCw, Sparkles, Wand2 } from "lucide-react";
-import { reviewItem, useStore } from "@/lib/store";
+import { myName, reviewItem, useStore } from "@/lib/store";
 import { personFor } from "@/lib/seed";
 import { heuristicRewrite, impactPreview, isUnclear, ruleStats, themesFrom, validatePatterns, type Proposal, type Theme } from "@/lib/ruleQuality";
 import { Empty, SeverityTag } from "@/components/ui";
@@ -121,7 +121,7 @@ export default function ImproveRule() {
           ruleId: rule.id,
           version,
           at: new Date().toISOString(),
-          by: personFor(role).name,
+          by: myName(),
           summary: prop.exceptionNote || "Rewrote the rule description",
           before: { description: rule.description, overrideRate: impact.before.overrideRate, decisions: impact.before.overridden + impact.before.accepted },
           projected: { overrideRate: impact.after.overrideRate, removedOverrides: impact.removedOverrides, missedAccepted: impact.missedAccepted },
@@ -137,7 +137,7 @@ export default function ImproveRule() {
   const recheckAffected = async () => {
     for (const it of affectedOpen) {
       setRechecking(it.title);
-      await reviewItem(it.id, it.draftText, `Re-check after ${rule.id} was improved`, personFor(role).name);
+      await reviewItem(it.id, it.draftText, `Re-check after ${rule.id} was improved`, myName());
     }
     setRechecking(null);
   };

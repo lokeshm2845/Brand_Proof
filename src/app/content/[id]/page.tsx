@@ -7,7 +7,7 @@ import {
   AlertTriangle, ArrowLeft, Check, CheckCircle2, ClipboardCopy, Edit3, History, Info, Loader2,
   MessageSquare, Printer, RefreshCw, Scale, Send, ShieldCheck, Undo2, X,
 } from "lucide-react";
-import { useStore, reviewItem, isAIPending } from "@/lib/store";
+import { useStore, reviewItem, isAIPending, useMe } from "@/lib/store";
 import { applyFix, BUCKETS, readability } from "@/lib/engine";
 import { personFor } from "@/lib/seed";
 import { CATEGORY_LABEL, ClaimTag, Empty, OriginTag, ScoreRing, SeverityTag, StatusBadge, timeAgo } from "@/components/ui";
@@ -189,7 +189,7 @@ export default function ContentPage() {
   const role = useStore((s) => s.role);
   const kit = useStore((s) => s.kit);
   const mutate = useStore((s) => s.mutate);
-  const me = personFor(role);
+  const me = useMe();
   const [active, setActive] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);

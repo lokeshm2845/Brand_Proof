@@ -238,6 +238,8 @@ export interface ContentItem {
   audit: AuditEntry[];
   decisions: Decision[];
   createdBy: string;
+  /** Supabase user id of the creator (team workspaces). */
+  createdById?: string;
   createdAt: string;
   updatedAt: string;
   kitVersion: number;

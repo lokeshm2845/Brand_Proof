@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { newItem, reviewItem, useStore } from "./store";
+import { myName, newItem, reviewItem, useStore } from "./store";
 import { personFor } from "./seed";
 import type { ContentItem } from "./types";
 
@@ -58,7 +58,7 @@ export function useCreateCheck() {
         }
       };
       // The AI layer keeps running after the page opens and merges its findings in.
-      reviewItem(item.id, input.text, "First brand check", personFor(role).name, open)
+      reviewItem(item.id, input.text, "First brand check", myName(), open)
         .then(open)
         .catch((e) => {
           setError(String(e?.message ?? e));

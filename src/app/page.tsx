@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, FileText, Image as ImageIcon, Loader2, Plus, RotateCcw, Scale, ShieldCheck } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { useMe, useStore } from "@/lib/store";
 import { personFor, SAMPLES } from "@/lib/seed";
 import { useCreateCheck } from "@/lib/useCheck";
 import { ScoreRing, StatusBadge, timeAgo, Empty } from "@/components/ui";
@@ -21,7 +21,7 @@ export default function Home() {
   const resetDemo = useStore((s) => s.resetDemo);
   const { run, busy, error } = useCreateCheck();
   const [filter, setFilter] = useState<"all" | "mine">("all");
-  const me = personFor(role);
+  const me = useMe();
 
   const list = useMemo(() => {
     const l = filter === "mine" ? items.filter((i) => waitingFor(i, role)) : items;

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Lock, Plus, Save, Trash2, Wand2 } from "lucide-react";
-import { useStore } from "@/lib/store";
+import { myName, useStore } from "@/lib/store";
 import { personFor } from "@/lib/seed";
 import { CATEGORY_LABEL, SeverityTag, timeAgo } from "@/components/ui";
 import type { BrandKit, Category, Rule, Severity } from "@/lib/types";
@@ -194,7 +194,7 @@ export default function BrandKitPage() {
           {saved ? (
             <span className="text-sm text-emerald-700">{saved}</span>
           ) : (
-            <span className="text-sm text-slate-500">{dirty ? "You have unsaved changes." : `Editing as ${personFor(role).name}. Every save creates a new Brand Kit version.`}</span>
+            <span className="text-sm text-slate-500">{dirty ? "You have unsaved changes." : `Editing as ${myName()}. Every save creates a new Brand Kit version.`}</span>
           )}
           <input className="input ml-auto max-w-xs py-1.5" placeholder="What changed? (for the history)" value={note} onChange={(e) => setNote(e.target.value)} />
           <button className="btn-ghost" disabled={!dirty} onClick={() => setK(clone(kit))}>Discard</button>

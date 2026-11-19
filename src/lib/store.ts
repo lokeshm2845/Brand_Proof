@@ -3,6 +3,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { runRuleEngine, score, uid } from "./engine";
 import { DEMO_KIT, personFor } from "./seed";
+import * as team from "./team";
+import type { Member } from "./team";
 import type {
   BrandKit,
   ContentItem,
@@ -20,12 +22,32 @@ export interface KitChange {
   change: string;
 }
 
+export interface TeamState {
+  orgId: string;
+  orgName: string;
+  me: Member;
+  members: Member[];
+}
+
 interface State {
   kit: BrandKit;
   kitHistory: KitChange[];
   items: ContentItem[];
   role: RoleKey;
   seeded: boolean;
+  /** "demo" = private sandbox in this browser; "team" = shared Supabase workspace. */
+  mode: "demo" | "team";
+  team: TeamState | null;
+  revs: Record<string, number>;
+  demoSnapshot: { kit: BrandKit; kitHistory: KitChange[]; items: ContentItem[]; role: RoleKey } | null;
+  lastOrgId: string | null;
+  syncError: string | null;
+  enterTeam: (t: TeamState, data: { kit: BrandKit; history: KitChange[]; items: ContentItem[]; revs: Record<string, number> }) => void;
+  exitTeam: () => void;
+  applyRemoteItem: (item: ContentItem, rev: number, deleted?: boolean) => void;
+  applyRemoteKit: (kit: BrandKit, history: KitChange[]) => void;
+  setMembers: (m: Member[]) => void;
+  clearSyncError: () => void;
   setRole: (r: RoleKey) => void;
   saveKit: (kit: BrandKit, change: string) => void;
   resetDemo: () => void;
@@ -66,8 +88,16 @@ const safeStorage = {
 };
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 
+/** Display name of whoever is using the app right now (team member or demo persona). */
+export function myName(): string {
+  const s = useStore.getState();
+  return s.mode === "team" && s.team ? s.team.me.name : personFor(s.role).name;
+}
+
 export function newItem(p: Partial<ContentItem> & { title: string; draftText: string }, role: RoleKey, kitVersion: number): ContentItem {
-  const who = personFor(role).name;
+  const s = typeof window !== "undefined" ? useStore.getState() : null;
+  const inTeam = s?.mode === "team" && s.team ? s.team : null;
+  const who = inTeam ? inTeam.me.name : personFor(role).name;
   return {
     id: uid("c"),
     channel: "",
@@ -82,6 +112,7 @@ export function newItem(p: Partial<ContentItem> & { title: string; draftText: st
     audit: [{ at: now(), by: who, action: "Created draft" }],
     decisions: [],
     createdBy: who,
+    createdById: inTeam ? inTeam.me.userId : undefined,
     createdAt: now(),
     updatedAt: now(),
     kitVersion,
@@ -185,16 +216,30 @@ export const useStore = create<State>()(
       items: [],
       role: "creator",
       seeded: false,
-      setRole: (role) => set({ role }),
+      mode: "demo",
+      team: null,
+      revs: {},
+      demoSnapshot: null,
+      lastOrgId: null,
+      syncError: null,
+      setRole: (role) => {
+        if (get().mode === "team") return; // in a team, your role comes from your membership
+        set({ role });
+      },
       saveKit: (kit, change) => {
-        const v = get().kit.version + 1;
-        const by = personFor(get().role).name;
-        set({
-          kit: { ...clone(kit), version: v, updatedAt: now() },
-          kitHistory: [{ version: v, at: now(), by, change }, ...get().kitHistory].slice(0, 50),
-        });
+        const st = get();
+        const v = st.kit.version + 1;
+        const by = myName();
+        const next = { ...clone(kit), version: v, updatedAt: now() };
+        const history = [{ version: v, at: now(), by, change }, ...st.kitHistory].slice(0, 50);
+        const prev = { kit: st.kit, kitHistory: st.kitHistory };
+        set({ kit: next, kitHistory: history });
+        if (st.mode === "team" && st.team) {
+          team.saveTeamKit(st.team.orgId, next, history, st.kit.version).catch((e) => set({ ...prev, syncError: `Brand Kit not saved: ${e.message}` }));
+        }
       },
       resetDemo: () => {
+        if (get().mode === "team") return;
         const kit = clone(DEMO_KIT);
         set({
           kit,
@@ -205,25 +250,90 @@ export const useStore = create<State>()(
         });
       },
       ensureSeed: () => {
-        if (!get().seeded) set({ items: [...seedItems(get().kit), ...get().items], seeded: true });
+        if (get().mode === "demo" && !get().seeded) set({ items: [...seedItems(get().kit), ...get().items], seeded: true });
       },
-      addItem: (item) => set({ items: [item, ...get().items] }),
-      mutate: (id, fn) =>
+      addItem: (item) => {
+        set({ items: [item, ...get().items.filter((i) => i.id !== item.id)] });
+        const st = get();
+        if (st.mode === "team" && st.team) {
+          set({ revs: { ...st.revs, [item.id]: 1 } });
+          team.insertItem(st.team.orgId, item).catch((e) => set({ syncError: `Could not save “${item.title}”: ${e.message}` }));
+        }
+      },
+      mutate: (id, fn) => {
+        const before = get().items.find((i) => i.id === id);
+        if (!before) return;
+        const c = clone(before);
+        fn(c);
+        c.updatedAt = now();
+        set({ items: get().items.map((it) => (it.id === id ? c : it)) });
+        const st = get();
+        if (st.mode === "team" && st.team) enqueuePush(id, fn, before, c);
+      },
+      removeItem: (id) => {
+        set({ items: get().items.filter((i) => i.id !== id) });
+        if (get().mode === "team") team.deleteItem(id).catch((e) => set({ syncError: `Could not delete: ${e.message}` }));
+      },
+      enterTeam: (t, data) => {
+        const st = get();
         set({
-          items: get().items.map((it) => {
-            if (it.id !== id) return it;
-            const c = clone(it);
-            fn(c);
-            c.updatedAt = now();
-            return c;
-          }),
-        }),
-      removeItem: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
+          demoSnapshot: st.mode === "demo" ? { kit: st.kit, kitHistory: st.kitHistory, items: st.items, role: st.role } : st.demoSnapshot,
+          mode: "team",
+          team: t,
+          role: t.me.role,
+          kit: data.kit,
+          kitHistory: data.history,
+          items: data.items,
+          revs: data.revs,
+          lastOrgId: t.orgId,
+          syncError: null,
+        });
+      },
+      exitTeam: () => {
+        const snap = get().demoSnapshot;
+        set({
+          mode: "demo",
+          team: null,
+          revs: {},
+          lastOrgId: null,
+          demoSnapshot: null,
+          ...(snap ?? { kit: clone(DEMO_KIT), items: [], kitHistory: [], role: "creator" as RoleKey }),
+        });
+      },
+      applyRemoteItem: (item, rev, deleted) => {
+        if (get().mode !== "team") return;
+        if (deleted) {
+          set({ items: get().items.filter((i) => i.id !== item.id) });
+          return;
+        }
+        if ((get().revs[item.id] ?? 0) > rev) return; // we already hold a newer copy
+        const exists = get().items.some((i) => i.id === item.id);
+        set({
+          items: exists ? get().items.map((i) => (i.id === item.id ? item : i)) : [item, ...get().items],
+          revs: { ...get().revs, [item.id]: rev },
+        });
+      },
+      applyRemoteKit: (kit, history) => {
+        if (get().mode !== "team" || kit.version < get().kit.version) return;
+        set({ kit, kitHistory: history });
+      },
+      setMembers: (m) => {
+        const t = get().team;
+        if (!t) return;
+        const me = m.find((x) => x.userId === t.me.userId) ?? t.me;
+        set({ team: { ...t, members: m, me }, role: me.role });
+      },
+      clearSyncError: () => set({ syncError: null }),
     }),
     {
       name: "brandproof-workspace-v1",
       version: 2,
       storage: createJSONStorage(() => safeStorage),
+      // Only the private demo sandbox is stored in the browser; team data always comes from the server.
+      partialize: (s) =>
+        s.mode === "team" && s.demoSnapshot
+          ? ({ ...s.demoSnapshot, seeded: s.seeded, lastOrgId: s.lastOrgId } as any)
+          : ({ kit: s.kit, kitHistory: s.kitHistory, items: s.items, role: s.role, seeded: s.seeded, lastOrgId: s.lastOrgId } as any),
       // v1 → v2: Round 3 adds logos and visual rules V-04…V-08 to the demo Brand Kit
       migrate: (persisted: any, from: number) => {
         if (persisted?.kit && from < 2) {
@@ -357,4 +467,81 @@ export async function requestReview(payload: {
       },
     };
   }
+}
+
+
+// ───────────── team sync: ordered saves, optimistic concurrency, notifications ─────────────
+// Saves for the same item run one after another, so two quick clicks never race each other.
+const queues = new Map<string, Promise<void>>();
+function enqueuePush(id: string, fn: (it: ContentItem) => void, before: ContentItem, after: ContentItem) {
+  const prev = queues.get(id) ?? Promise.resolve();
+  const next = prev.then(() => pushItem(id, fn, before, after)).catch(() => {});
+  queues.set(id, next);
+}
+
+async function pushItem(id: string, fn: (it: ContentItem) => void, before: ContentItem, after: ContentItem) {
+  const st = useStore.getState();
+  const t = st.team;
+  if (!t) return;
+  try {
+    const rev = await team.updateItem(t.orgId, after, st.revs[id] ?? 1);
+    useStore.setState({ revs: { ...useStore.getState().revs, [id]: rev } });
+  } catch (e) {
+    if (!(e instanceof team.ConflictError)) {
+      useStore.setState({ syncError: `Not saved: ${(e as Error).message}` });
+      return;
+    }
+    // Someone else saved first: re-apply this change on top of their version (once).
+    try {
+      const fresh = await team.fetchItem(id);
+      const merged = clone(fresh.item);
+      fn(merged);
+      merged.updatedAt = now();
+      const rev = await team.updateItem(t.orgId, merged, fresh.rev);
+      useStore.setState({
+        items: useStore.getState().items.map((i) => (i.id === id ? merged : i)),
+        revs: { ...useStore.getState().revs, [id]: rev },
+        syncError: "Someone else edited this item at the same time — your change was applied on top of theirs.",
+      });
+      after = merged;
+    } catch (e2) {
+      useStore.setState({ syncError: `Not saved — the item changed elsewhere. Refresh and try again. (${(e2 as Error).message})` });
+      return;
+    }
+  }
+  notifyTransition(before, after);
+}
+
+function notifyTransition(before: ContentItem, after: ContentItem) {
+  const t = useStore.getState().team;
+  if (!t) return;
+  const me = t.me.userId;
+  const byRole = (...roles: RoleKey[]) => t.members.filter((m) => roles.includes(m.role) && m.userId !== me).map((m) => m.userId);
+  const creator = after.createdById && after.createdById !== me ? [after.createdById] : [];
+  if (before.status !== after.status) {
+    if (after.status === "in_review") {
+      const reviewers = [...byRole("brand"), ...(after.needsLegal ? byRole("legal") : [])];
+      team.notify(t.orgId, reviewers.length ? reviewers : byRole("admin"), `${t.me.name} submitted “${after.title}” for review${after.needsLegal ? " (Brand + Legal)" : ""}.`, after.id);
+    } else if (after.status === "changes_requested") {
+      team.notify(t.orgId, creator, `${t.me.name} requested changes on “${after.title}”.`, after.id);
+    } else if (after.status === "approved") {
+      team.notify(t.orgId, creator, `“${after.title}” is approved and ready to publish.`, after.id);
+    }
+  } else if (after.approvals.brand && !before.approvals.brand && after.needsLegal && !after.approvals.legal) {
+    team.notify(t.orgId, byRole("legal"), `${t.me.name} approved “${after.title}” for Brand — Legal sign-off is next.`, after.id);
+  }
+  if (after.comments.length > before.comments.length) {
+    const last = after.comments[after.comments.length - 1];
+    const others = after.comments.map((c) => t.members.find((m) => m.name === c.by)?.userId).filter((u): u is string => Boolean(u));
+    team.notify(t.orgId, [...new Set([...creator, ...others])].filter((u) => u !== me), `${t.me.name} commented on “${after.title}”: ${last.text.slice(0, 120)}`, after.id);
+  }
+}
+
+/** The person using the app: the signed-in team member, or the demo persona picked in "Acting as". */
+export function useMe(): { key: RoleKey; name: string; title: string } {
+  const mode = useStore((s) => s.mode);
+  const t = useStore((s) => s.team);
+  const role = useStore((s) => s.role);
+  if (mode === "team" && t) return { key: t.me.role, name: t.me.name, title: personFor(t.me.role).title };
+  return personFor(role);
 }

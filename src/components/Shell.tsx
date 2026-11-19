@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ShieldCheck, Sparkles, Cpu } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { PEOPLE } from "@/lib/seed";
+import { TeamBadge, TeamLive, useTeamResume } from "./TeamSync";
 import type { RoleKey } from "@/lib/types";
 
 const NAV = [
@@ -12,6 +13,7 @@ const NAV = [
   { href: "/new", label: "New check" },
   { href: "/brand-kit", label: "Brand Kit" },
   { href: "/insights", label: "Insights" },
+  { href: "/team", label: "Team" },
   { href: "/ai", label: "How AI is used" },
 ];
 
@@ -32,11 +34,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const role = useStore((s) => s.role);
   const setRole = useStore((s) => s.setRole);
   const ensureSeed = useStore((s) => s.ensureSeed);
+  const mode = useStore((s) => s.mode);
   const ai = useAIStatus();
+  const teamReady = useTeamResume();
+  const [storageMsg, setStorageMsg] = useState<string | null>(null);
 
   useEffect(() => {
     ensureSeed();
     setReady(true);
+    const onStorage = () => setStorageMsg("Your browser storage is full, so recent changes may not survive a refresh. Delete a few large image items or use Reset demo.");
+    window.addEventListener("brandproof-storage", onStorage);
+    return () => window.removeEventListener("brandproof-storage", onStorage);
   }, [ensureSeed]);
 
   return (
@@ -73,7 +81,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 {ai.ai ? `Hybrid · ${ai.model}` : "Rule engine mode"}
               </span>
             )}
-            <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs">
+            {mode === "team" ? (
+              <>
+                <TeamBadge />
+                <TeamLive />
+              </>
+            ) : (
+              <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs">
               <span className="text-slate-500">Acting as</span>
               <select
                 aria-label="Switch role"
@@ -88,14 +102,20 @@ export default function Shell({ children }: { children: React.ReactNode }) {
                 ))}
               </select>
             </label>
+            )}
           </div>
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">
-        {ready ? children : <div className="py-20 text-center text-sm text-slate-500">Loading workspace…</div>}
+        {storageMsg && (
+          <div className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200" role="alert">
+            {storageMsg}
+          </div>
+        )}
+        {ready && teamReady ? children : <div className="py-20 text-center text-sm text-slate-500">Loading workspace…</div>}
       </main>
       <footer className="no-print mx-auto max-w-7xl px-4 pb-8 pt-4 text-xs text-slate-400">
-        BrandProof · built by Team VictoryVerse for CodeNova India 2026 · Demo brand &quot;PayNova&quot; is fictional · Your workspace is stored only in this browser.
+        BrandProof · built by Team VictoryVerse for CodeNova India 2026 · Demo brand &quot;PayNova&quot; is fictional · {mode === "team" ? "Team workspace data is stored in Supabase (Postgres, row-level security)." : "Demo sandbox — stored only in this browser."}
       </footer>
     </div>
   );
