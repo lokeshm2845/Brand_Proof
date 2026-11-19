@@ -12,7 +12,9 @@
     "test:fit": "tsx --conditions=react-server scripts/fit-test.ts",
     "test:ai-live": "tsx scripts/ai-live-test.ts",
     "eval:visual": "tsx scripts/eval-visual.ts",
-    "test:rules": "tsx scripts/rule-improve-test.ts"
+    "test:rules": "tsx scripts/rule-improve-test.ts",
+    "test:team": "tsx scripts/team-test.ts",
+    "test": "tsx scripts/eval.ts && tsx --conditions=react-server scripts/verifier-test.ts && tsx --conditions=react-server scripts/fit-test.ts && tsx scripts/rule-improve-test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
