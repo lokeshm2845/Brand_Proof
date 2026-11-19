@@ -1,0 +1,729 @@
+[
+ {
+  "text": "Paynova now supports UPI Lite for small payments.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "PAYNOVA rewards are back this weekend. T&C apply.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Download the Pay-Nova app from the Play Store.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Set a savings goal with Novasave and watch it grow.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Our clients can now pay utility bills in one tap.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Pay faster with Nova UPI at any shop.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Signup now to get started with PayNova.",
+  "expect": []
+ },
+ {
+  "text": "Visit paynova.in/help for answers to common questions.",
+  "expect": []
+ },
+ {
+  "text": "Email support@paynova.in if you need help with a payment.",
+  "expect": []
+ },
+ {
+  "text": "PayNova and NovaSave work together to help you budget.",
+  "expect": []
+ },
+ {
+  "text": "The NovaPay UPI app lets you scan any QR code.",
+  "expect": []
+ },
+ {
+  "text": "Customers can link up to five bank accounts.",
+  "expect": []
+ },
+ {
+  "text": "PayNova is the best way to pay your rent.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "India's number one payments app is here.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Experience the fastest checkout in the country.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "We are the leading wallet for students.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "PayNova has the cheapest international transfers.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Join the largest UPI community in Maharashtra.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Rated No. 1 by small shop owners.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "The most trusted app for your family's money.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Best regards, Team PayNova",
+  "expect": []
+ },
+ {
+  "text": "Pay at least your minimum due to avoid late fees.",
+  "expect": []
+ },
+ {
+  "text": "Small habits, leading to big savings over a year.",
+  "expect": []
+ },
+ {
+  "text": "PayNova was named one of India's fastest-growing fintech apps in 2026.",
+  "expect": []
+ },
+ {
+  "text": "We try our best to resolve complaints within 48 hours.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Your payments are 100% safe with us.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Guaranteed cashback on every bill you pay.",
+  "expect": [
+   "C-05",
+   "C-07"
+  ]
+ },
+ {
+  "text": "A risk free way to grow your savings. T&C apply.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Our servers never fail, even on Diwali.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Zero risk when you send money abroad.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Completely safe payments, every single time.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Returns on savings are not guaranteed and depend on bank rates.",
+  "expect": []
+ },
+ {
+  "text": "Every payment is protected with 256-bit encryption.",
+  "expect": []
+ },
+ {
+  "text": "Your money stays in your own bank account.",
+  "expect": []
+ },
+ {
+  "text": "Get 2% cashback on your next recharge.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "Earn rewards every time you pay a bill.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "Special discount on movie tickets this Friday.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "Claim your free credit of Rs 50 today.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "New users get Rs 100 cashback. T&C apply.",
+  "expect": []
+ },
+ {
+  "text": "Rewards on rent payments. Terms and conditions apply.",
+  "expect": []
+ },
+ {
+  "text": "We offer UPI payments, bill pay and savings in one app.",
+  "expect": []
+ },
+ {
+  "text": "Discounts and cashback (T&Cs apply) on your first five payments.",
+  "expect": []
+ },
+ {
+  "text": "Over 2 million users already pay with PayNova.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Loved by 15 lakh customers across India.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "More than 1.5M users trust us.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Rated 4.8 stars on the Play Store.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Accepted by 2.5 lakh merchants nationwide.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "We are rated 4.4 by our users.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Join 5 million people saving smarter.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Pay at 3.1 lakh merchants today.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "2.4 million users and counting.",
+  "expect": []
+ },
+ {
+  "text": "PayNova is rated 4.6 on Google Play.",
+  "expect": []
+ },
+ {
+  "text": "Pay bills from 12 categories in one place.",
+  "expect": []
+ },
+ {
+  "text": "Send money to 3 friends at once with group pay.",
+  "expect": []
+ },
+ {
+  "text": "Switching from Paytm takes two minutes.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Unlike PhonePe, we show every fee upfront.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Better than CRED for paying your card bill.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Already using Google Pay? Try PayNova too.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Works with BHIM UPI IDs as well.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Build your credit score with on-time payments.",
+  "expect": []
+ },
+ {
+  "text": "Credited instantly to your bank account.",
+  "expect": []
+ },
+ {
+  "text": "Double your money in a year with NovaSave.",
+  "expect": [
+   "M-04"
+  ]
+ },
+ {
+  "text": "Earn lakhs from home with smart savings.",
+  "expect": [
+   "M-04"
+  ]
+ },
+ {
+  "text": "Easy money is just one tap away.",
+  "expect": [
+   "M-04"
+  ]
+ },
+ {
+  "text": "Get rich slowly with small daily savings.",
+  "expect": [
+   "M-04"
+  ]
+ },
+ {
+  "text": "Track your spending and save a little every month.",
+  "expect": []
+ },
+ {
+  "text": "See how much you spent on food this month.",
+  "expect": []
+ },
+ {
+  "text": "Hey guys, our new feature is live!",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "We're gonna make bill payments easier.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "Wanna split the dinner bill? Try group pay.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "OMG, instant refunds are finally here.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "No worries yaar, PayNova has you covered.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "Students told us they wanted a faster split feature, so we built one.",
+  "expect": []
+ },
+ {
+  "text": "Thank you for being part of the PayNova family.",
+  "expect": []
+ },
+ {
+  "text": "Your bill is paid!! Relax.",
+  "expect": [
+   "T-02"
+  ]
+ },
+ {
+  "text": "Big news!!! Instant refunds are here.",
+  "expect": [
+   "T-02"
+  ]
+ },
+ {
+  "text": "Pay your bill in seconds!",
+  "expect": []
+ },
+ {
+  "text": "Need help? Tap the chat icon.",
+  "expect": []
+ },
+ {
+  "text": "Pay your bills with ZERO fees.",
+  "expect": [
+   "T-03"
+  ]
+ },
+ {
+  "text": "NEW: split bills with friends.",
+  "expect": [
+   "T-03"
+  ]
+ },
+ {
+  "text": "This weekend only, BONUS rewards. T&C apply.",
+  "expect": [
+   "T-03"
+  ]
+ },
+ {
+  "text": "Complete your KYC to unlock UPI payments.",
+  "expect": []
+ },
+ {
+  "text": "Pay your EMI on time and avoid penalties.",
+  "expect": []
+ },
+ {
+  "text": "PayNova follows RBI guidelines for payment apps.",
+  "expect": []
+ },
+ {
+  "text": "Withdraw cash at any ATM with your PayNova card.",
+  "expect": []
+ },
+ {
+  "text": "Link your PAN to see your full statement.",
+  "expect": []
+ },
+ {
+  "text": "Hurry, rewards end soon.",
+  "expect": [
+   "T-04",
+   "C-07"
+  ]
+ },
+ {
+  "text": "Don't miss out on smarter savings.",
+  "expect": [
+   "T-04"
+  ]
+ },
+ {
+  "text": "Act now before it's too late.",
+  "expect": [
+   "T-04"
+  ]
+ },
+ {
+  "text": "Last chance to set up autopay this month.",
+  "expect": [
+   "T-04"
+  ]
+ },
+ {
+  "text": "Update the app, or else your payments may fail.",
+  "expect": [
+   "T-04"
+  ]
+ },
+ {
+  "text": "Set up autopay so you never miss a due date.",
+  "expect": []
+ },
+ {
+  "text": "Pay before the 5th to avoid a late fee from your biller.",
+  "expect": []
+ },
+ {
+  "text": "Click here to see your statement.",
+  "expect": [
+   "A-02"
+  ]
+ },
+ {
+  "text": "Read more on our blog.",
+  "expect": [
+   "A-02"
+  ]
+ },
+ {
+  "text": "Want the details? Click here.",
+  "expect": [
+   "A-02"
+  ]
+ },
+ {
+  "text": "See your full statement in the app under History.",
+  "expect": []
+ },
+ {
+  "text": "Find answers in our help centre at paynova.in/help.",
+  "expect": []
+ },
+ {
+  "text": "When you open the PayNova app for the first time you can link your bank account, set a UPI PIN, add your electricity and mobile billers, choose reminders and start paying friends and shops within a couple of minutes without visiting a branch.",
+  "expect": [
+   "A-01"
+  ]
+ },
+ {
+  "text": "With PayNova you can scan any QR code at a shop, pay your friends from your contacts list, split a dinner bill with a group, set up autopay for rent and see everything you spent in one simple monthly summary.",
+  "expect": [
+   "A-01"
+  ]
+ },
+ {
+  "text": "Link your bank. Set your PIN. Start paying.",
+  "expect": []
+ },
+ {
+  "text": "Pay your electricity bill in a few taps.",
+  "expect": []
+ },
+ {
+  "text": "Split rent with flatmates and settle up instantly.",
+  "expect": []
+ },
+ {
+  "text": "Set a monthly budget and get a gentle nudge when you are close.",
+  "expect": []
+ },
+ {
+  "text": "Your UPI PIN is never shared with anyone, including us.",
+  "expect": []
+ },
+ {
+  "text": "Scan, pay and get a receipt by SMS.",
+  "expect": []
+ },
+ {
+  "text": "Refunds reach your bank account within five working days.",
+  "expect": []
+ },
+ {
+  "text": "Schedule payments so bills are never late.",
+  "expect": []
+ },
+ {
+  "text": "Add a nickname to each contact to find them faster.",
+  "expect": []
+ },
+ {
+  "text": "Turn on app lock for an extra layer of security.",
+  "expect": []
+ },
+ {
+  "text": "See every transaction in one clear timeline.",
+  "expect": []
+ },
+ {
+  "text": "Pay any UPI ID or mobile number.",
+  "expect": []
+ },
+ {
+  "text": "Choose which notifications you want to receive.",
+  "expect": []
+ },
+ {
+  "text": "Get a reminder two days before each bill is due.",
+  "expect": []
+ },
+ {
+  "text": "Download your statement as a PDF for tax time.",
+  "expect": []
+ },
+ {
+  "text": "Your data is stored in India and protected by 256-bit encryption.",
+  "expect": []
+ },
+ {
+  "text": "Talk to a real person in our chat between 8 am and 10 pm.",
+  "expect": []
+ },
+ {
+  "text": "Students can split hostel bills without awkward reminders.",
+  "expect": []
+ },
+ {
+  "text": "Shop owners see every payment the moment it arrives.",
+  "expect": []
+ },
+ {
+  "text": "Report a problem from the payment screen in two taps.",
+  "expect": []
+ },
+ {
+  "text": "Freeze your card from the app if you lose it.",
+  "expect": []
+ },
+ {
+  "text": "Paynova is the #1 app, guaranteed!! Hurry.",
+  "expect": [
+   "TERM-01",
+   "C-03",
+   "C-05",
+   "T-02",
+   "T-04"
+  ]
+ },
+ {
+  "text": "Unlike Paytm, Nova Save gives guaranteed returns.",
+  "expect": [
+   "M-03",
+   "TERM-01",
+   "C-05"
+  ]
+ },
+ {
+  "text": "FREE rewards for 10 lakh users. Click here.",
+  "expect": [
+   "T-03",
+   "C-07",
+   "F-RULE",
+   "A-02"
+  ]
+ },
+ {
+  "text": "Rated 4.9 by 1 million users, the best app in India!",
+  "expect": [
+   "F-RULE",
+   "C-03"
+  ]
+ },
+ {
+  "text": "Hey guys, earn lakhs with zero risk.",
+  "expect": [
+   "T-01",
+   "M-04",
+   "C-05"
+  ]
+ },
+ {
+  "text": "Last chance: 5% cashback on rent ends this Sunday.",
+  "expect": [
+   "T-04",
+   "C-07"
+  ]
+ },
+ {
+  "text": "Pay Nova is better than Google Pay.",
+  "expect": [
+   "TERM-01",
+   "M-03"
+  ]
+ },
+ {
+  "text": "Join our clients in saving smarter with NovaSave.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "OMG!! The fastest refunds ever.",
+  "expect": [
+   "T-01",
+   "T-02",
+   "C-03"
+  ]
+ },
+ {
+  "text": "Don't miss out: double your money with NovaSave.",
+  "expect": [
+   "T-04",
+   "M-04"
+  ]
+ },
+ {
+  "text": "Introducing group pay: split any bill with up to ten friends.",
+  "expect": []
+ },
+ {
+  "text": "Bill reminders now arrive on WhatsApp if you opt in.",
+  "expect": []
+ },
+ {
+  "text": "We fixed the bug that delayed some refund notifications.",
+  "expect": []
+ },
+ {
+  "text": "Your monthly summary is ready in the app.",
+  "expect": []
+ },
+ {
+  "text": "Tip: set a spending limit for online payments.",
+  "expect": []
+ },
+ {
+  "text": "Merchants can now download daily settlement reports.",
+  "expect": []
+ },
+ {
+  "text": "Our app is available in English, Hindi and Marathi.",
+  "expect": []
+ },
+ {
+  "text": "Change your UPI PIN from Settings at any time.",
+  "expect": []
+ },
+ {
+  "text": "We will never ask for your OTP on a call.",
+  "expect": []
+ },
+ {
+  "text": "Scheduled maintenance tonight from 1 am to 2 am.",
+  "expect": []
+ }
+]

@@ -1,0 +1,163 @@
+[
+ {
+  "text": "Say hello to faster bill payments with PayNova.",
+  "expect": []
+ },
+ {
+  "text": "Paynova users can now pay gas bills too.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "India's most trusted UPI app is waiting for you.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Instant cashback on your first DTH recharge.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "We are rated 4.6 on Google Play, thank you!",
+  "expect": []
+ },
+ {
+  "text": "Over 3 million users trust PayNova every day.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Unlike Google Pay, we show you every fee upfront.",
+  "expect": [
+   "M-03"
+  ]
+ },
+ {
+  "text": "Your deposit is 100% risk-free with NovaSave.",
+  "expect": [
+   "C-05"
+  ]
+ },
+ {
+  "text": "Don't miss out on Diwali rewards! T&C apply.",
+  "expect": [
+   "T-04"
+  ]
+ },
+ {
+  "text": "Pay rent, split bills and track spending in one place.",
+  "expect": []
+ },
+ {
+  "text": "lol, we made refunds even faster.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "Introducing AUTOPAY for every biller.",
+  "expect": [
+   "T-03"
+  ]
+ },
+ {
+  "text": "Questions? Read more here.",
+  "expect": [
+   "A-02"
+  ]
+ },
+ {
+  "text": "Our merchant network now covers 2 lakh stores.",
+  "expect": [
+   "F-RULE"
+  ]
+ },
+ {
+  "text": "Earn lakhs with zero effort using NovaSave.",
+  "expect": [
+   "M-04"
+  ]
+ },
+ {
+  "text": "Your UPI PIN keeps every payment secure.",
+  "expect": []
+ },
+ {
+  "text": "Wow!! Group pay is here.",
+  "expect": [
+   "T-02"
+  ]
+ },
+ {
+  "text": "Get the best deals on recharges. T&C apply.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Savings returns are not guaranteed and may change.",
+  "expect": []
+ },
+ {
+  "text": "Find us at www.paynova.in for the full terms.",
+  "expect": []
+ },
+ {
+  "text": "Pay Nova makes UPI simple.",
+  "expect": [
+   "TERM-01"
+  ]
+ },
+ {
+  "text": "Hurry, the festive offer closes tonight.",
+  "expect": [
+   "T-04",
+   "C-07"
+  ]
+ },
+ {
+  "text": "Check your KYC status in Settings.",
+  "expect": []
+ },
+ {
+  "text": "PayNova never charges you for UPI transfers.",
+  "expect": []
+ },
+ {
+  "text": "Join 2.4 million users who pay smarter.",
+  "expect": []
+ },
+ {
+  "text": "Free credit worth Rs 100 for new users.",
+  "expect": [
+   "C-07"
+  ]
+ },
+ {
+  "text": "The leading choice for small shop owners.",
+  "expect": [
+   "C-03"
+  ]
+ },
+ {
+  "text": "Gonna be away? Schedule your bills in advance.",
+  "expect": [
+   "T-01"
+  ]
+ },
+ {
+  "text": "Our app offers instant refunds to your bank.",
+  "expect": []
+ },
+ {
+  "text": "Rated 5 stars by thousands of merchants.",
+  "expect": [
+   "F-RULE"
+  ]
+ }
+]

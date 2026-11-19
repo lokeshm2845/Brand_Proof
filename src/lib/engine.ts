@@ -77,6 +77,16 @@ function sentenceAround(text: string, idx: number) {
   return { start: s, end: e, text: text.slice(s, e) };
 }
 
+/** True when [s,e) sits inside a URL, domain or email address (brand names there are lowercase by necessity). */
+function inUrlOrEmail(text: string, s: number, e: number) {
+  let a = s;
+  while (a > 0 && !/\s/.test(text[a - 1])) a--;
+  let b = e;
+  while (b < text.length && !/\s/.test(text[b])) b++;
+  const token = text.slice(a, b);
+  return /@|:\/\/|\/|\.(in|com|org|net|io|app|co)\b/i.test(token);
+}
+
 const SUPERLATIVE_STEMS = ["fast", "best", "trust", "larg", "lead", "cheap", "number one", "#1"];
 
 // ---------- number normalisation for fact checks ----------
@@ -96,7 +106,7 @@ export function toNumber(raw: string): number | null {
 const ALLOWED_CAPS = new Set([
   "UPI", "RBI", "EMI", "KYC", "ATM", "OTP", "PIN", "SMS", "NPCI", "FAQ", "GST", "PAN", "INR",
   "USD", "API", "PDF", "IMPS", "NEFT", "RTGS", "CEO", "CTO", "CFO", "APP", "QR", "USA", "UK", "EU",
-  "DPDP", "SEBI", "IRDAI", "NBFC", "AI",
+  "DPDP", "SEBI", "IRDAI", "NBFC", "AI", "DTH", "LPG", "OTT", "IFSC", "UPI ID", "SIP", "TDS", "ITR", "KYC", "FD", "RD", "POS",
 ]);
 
 export interface EngineOptions {
@@ -164,6 +174,7 @@ function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): F
         let m: RegExpExecArray | null;
         while ((m = re.exec(text))) {
           if (m[0] === g.preferred) continue;
+          if (inUrlOrEmail(text, m.index, m.index + m[0].length)) continue;
           if (overlaps(m.index, m.index + m[0].length)) continue;
           taken.push([m.index, m.index + m[0].length, term.id]);
           out.push(
@@ -207,6 +218,9 @@ function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): F
         let message = `${rule.title}`;
 
         if (rule.id === "C-03") {
+          const after = text.slice(e, e + 12).toLowerCase();
+          if (/^best$/i.test(m[0]) && /^\s+(regards|wishes)\b/.test(after)) continue; // "Best regards"
+          if (/^leading$/i.test(m[0]) && /^\s+(to|up)\b/.test(after)) continue; // "leading to" is a verb
           quote = clauseFrom(text, s, e, 6);
           const qs = text.indexOf(quote, Math.max(0, s - 5));
           e = qs + quote.length;
@@ -232,6 +246,7 @@ function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): F
             factId = fact.id;
           }
         } else if (rule.id === "C-05") {
+          if (/\b(not|no|never|isn't|aren't|cannot|can't)\s+(be\s+|always\s+)?$/i.test(text.slice(Math.max(0, s - 18), s))) continue;
           quote = m[0];
           claimStatus = "unsupported";
           message = `Absolute guarantee: "${quote}"`;
@@ -274,10 +289,11 @@ function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): F
     const re = /\b[A-Z][A-Z']{2,}(?:\s+[A-Z][A-Z']{2,})*\b/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text))) {
-      const words = m[0].split(/\s+/).filter((w) => !ALLOWED_CAPS.has(w.replace(/'/g, "")));
+      const words = m[0].split(/\s+/).filter((w) => !ALLOWED_CAPS.has(w.replace(/'/g, "")) && !kit.competitorNames.includes(w));
       if (!words.length) continue;
       if (kit.glossary.some((g) => g.preferred === m![0])) continue;
-      if (overlaps(m.index, m.index + m[0].length, "TERM-01")) continue;
+      if (kit.competitorNames.some((c) => c === m![0])) continue;
+      if (overlaps(m.index, m.index + m[0].length)) continue;
       const atStart = m.index === 0 || /[.!?\n]\s*$/.test(text.slice(0, m.index));
       const lower = m[0].toLowerCase();
       const suggestion = atStart ? lower[0].toUpperCase() + lower.slice(1) : lower;
@@ -295,8 +311,18 @@ function rawRuleEngine(text: string, kit: BrandKit, opts: EngineOptions = {}): F
 
   // 4) Offers need T&C
   const tc = R("C-07");
-  if (tc && /\b(cashback|rewards?|offer|free credit|discount)\b/i.test(text) && !/T&C apply|T&Cs apply|terms and conditions apply/i.test(text)) {
-    const idx = text.search(/\b(cashback|rewards?|offer|free credit|discount)\b/i);
+  const OFFER = /\b(cashback|rewards?|offers?|free credit|discounts?)\b/gi;
+  const offerAt = (() => {
+    let m: RegExpExecArray | null;
+    while ((m = OFFER.exec(text))) {
+      const before = text.slice(Math.max(0, m.index - 12), m.index).toLowerCase();
+      if (/^offers?$/i.test(m[0]) && /\b(we|they|you|i|it|also|now|app|paynova|novasave|which|that)\s+$/.test(before)) continue; // "we offer UPI", "our app offers refunds" (verb)
+      return m.index;
+    }
+    return -1;
+  })();
+  if (tc && offerAt >= 0 && !/T&Cs? apply|terms and conditions apply/i.test(text)) {
+    const idx = offerAt;
     const sen = sentenceAround(text, idx);
     const body = sen.text.replace(/[.!]+$/, "");
     const end = sen.text.slice(body.length) || ".";

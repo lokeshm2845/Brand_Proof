@@ -2,7 +2,8 @@
 import { readFileSync } from "fs";
 import { runRuleEngine } from "../src/lib/engine";
 import { DEMO_KIT } from "../src/lib/seed";
-const cases: { text: string; expect: string[] }[] = JSON.parse(readFileSync("eval/testset.json", "utf8"));
+const files = process.argv.includes("--r2-only") ? ["eval/testset.json"] : process.argv.includes("--holdout") ? ["eval/holdout-r3.json"] : ["eval/testset.json", "eval/testset-r3.json"];
+const cases: { text: string; expect: string[] }[] = files.flatMap((f) => JSON.parse(readFileSync(f, "utf8")));
 let tp = 0, fp = 0, fn = 0; const misses: string[] = [];
 const per: Record<string, { tp: number; fp: number; fn: number }> = {};
 const bump = (r: string, k: "tp" | "fp" | "fn") => ((per[r] ??= { tp: 0, fp: 0, fn: 0 })[k]++);
