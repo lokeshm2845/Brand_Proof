@@ -1,3 +1,4 @@
+import type { Box, LogoResult, TextBlock } from "./vision";
 export type Severity = "high" | "medium" | "low";
 export type Category =
   | "tone"
@@ -65,6 +66,7 @@ export interface BrandKit {
   palette: PaletteColor[];
   confidentialTerms: string[];
   competitorNames: string[];
+  logos?: BrandLogo[];
   updatedAt: string;
 }
 
@@ -94,6 +96,8 @@ export interface Finding {
   applied?: string;
   /** Colour info for visual findings */
   swatches?: string[];
+  /** Where the issue is on the creative (normalised 0..1, page for PDFs). */
+  box?: Box;
 }
 
 export interface ImageAnalysis {
@@ -101,6 +105,27 @@ export interface ImageAnalysis {
   contrastEstimate: number;
   width: number;
   height: number;
+  /** Visual Compliance Engine results (Round 3). */
+  logo?: LogoResult;
+  blocks?: TextBlock[];
+  ocrText?: string;
+  ocrMs?: number;
+  logoMs?: number;
+}
+
+/** One rendered page of a multi-page PDF creative. */
+export interface CreativePage {
+  page: number;
+  dataUrl: string;
+  analysis: ImageAnalysis;
+}
+
+export interface BrandLogo {
+  id: string;
+  name: string;
+  kind: "approved" | "outdated";
+  /** URL or data URL of a PNG/JPG (transparent background recommended). */
+  src: string;
 }
 
 export interface ReviewMeta {
@@ -182,6 +207,7 @@ export interface ContentItem {
   fileName?: string;
   imageDataUrl?: string;
   imageAnalysis?: ImageAnalysis;
+  pages?: CreativePage[];
   altText?: string;
   draftText: string;
   versions: Version[];

@@ -150,8 +150,9 @@ export default function BrandKitPage() {
           </div>
           <p className="mt-4 text-sm text-slate-500">
             Creatives are compared to this palette using the CIE ΔE colour-difference formula. Any colour covering 10%+ of an image and more than ΔE 25 away
-            from every brand colour is flagged under rule V-01. Logo detection is planned for Round 3.
+            from every brand colour is flagged under rule V-01.
           </p>
+          <LogosEditor k={k} setK={setK} edit={isAdmin} />
         </div>
       )}
 
@@ -366,6 +367,95 @@ function ImportTab({ k, setK, edit }: { k: BrandKit; setK: (k: BrandKit) => void
             <p className="text-xs text-amber-700">Switch to Kabir (Brand Admin) to add these to the Brand Kit.</p>
           ))}
       </div>
+    </div>
+  );
+}
+
+function fileToPng(file: File, maxSide = 400): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error("Use a PNG, JPG or WebP image."));
+    if (file.size > 5 * 1024 * 1024) return reject(new Error("Logo file is larger than 5 MB."));
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * s));
+        c.height = Math.max(1, Math.round(img.height * s));
+        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/png"));
+      };
+      img.onerror = () => reject(new Error("Could not read that image."));
+      img.src = String(r.result);
+    };
+    r.onerror = () => reject(new Error("Could not read that file."));
+    r.readAsDataURL(file);
+  });
+}
+
+function LogosEditor({ k, setK, edit }: { k: BrandKit; setK: (k: BrandKit) => void; edit: boolean }) {
+  const [err, setErr] = useState<string | null>(null);
+  const logos = k.logos ?? [];
+  const upd = (fn: (l: NonNullable<BrandKit["logos"]>) => void) => {
+    const n = clone(k);
+    n.logos = n.logos ?? [];
+    fn(n.logos);
+    setK(n);
+  };
+  return (
+    <div className="mt-6 border-t pt-5">
+      <p className="label">Logos (used for logo detection)</p>
+      <p className="mb-3 text-sm text-slate-500">
+        Every creative is searched for these logos. The current logo is checked for stretching (V-05) and recolouring (V-06); retired logos trigger
+        V-04. Upload PNGs with a transparent background for best results.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {logos.map((l, i) => (
+          <div key={l.id} className={`w-56 rounded-xl border p-3 ${l.kind === "outdated" ? "border-rose-200 bg-rose-50/40" : "border-emerald-200 bg-emerald-50/40"}`}>
+            <div className="mb-2 flex h-20 items-center justify-center rounded-lg bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={l.src} alt={l.name} className="max-h-16 max-w-[90%] object-contain" />
+            </div>
+            <input disabled={!edit} className="input mb-1 py-1 text-xs" value={l.name} onChange={(e) => upd((ls) => (ls[i].name = e.target.value))} aria-label="Logo name" />
+            <div className="flex items-center gap-1">
+              <select disabled={!edit} className="input py-1 text-xs" value={l.kind} onChange={(e) => upd((ls) => (ls[i].kind = e.target.value as "approved" | "outdated"))} aria-label="Logo status">
+                <option value="approved">Current (approved)</option>
+                <option value="outdated">Retired — must not be used</option>
+              </select>
+              {edit && (
+                <button aria-label="Remove logo" className="text-slate-400 hover:text-rose-600" onClick={() => upd((ls) => ls.splice(i, 1))}>
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {edit && (
+          <label className="flex w-56 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed p-3 text-sm text-slate-500 hover:text-nova">
+            <Plus size={16} /> Upload logo
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                setErr(null);
+                try {
+                  const src = await fileToPng(f);
+                  upd((ls) => ls.push({ id: `L-${Date.now().toString(36)}`, name: f.name.replace(/\.[^.]+$/, ""), kind: "approved", src }));
+                } catch (x: any) {
+                  setErr(x.message);
+                }
+              }}
+            />
+          </label>
+        )}
+      </div>
+      {err && <p className="mt-2 text-sm text-rose-600">{err}</p>}
+      {!logos.length && <p className="mt-2 text-sm text-amber-700">No logos yet — logo checks are skipped until you upload one.</p>}
     </div>
   );
 }

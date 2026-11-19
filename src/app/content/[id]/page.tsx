@@ -11,7 +11,8 @@ import { useStore, reviewItem, isAIPending } from "@/lib/store";
 import { applyFix, BUCKETS, readability } from "@/lib/engine";
 import { personFor } from "@/lib/seed";
 import { CATEGORY_LABEL, ClaimTag, Empty, OriginTag, ScoreRing, SeverityTag, StatusBadge, timeAgo } from "@/components/ui";
-import type { ContentItem, Finding, FindingStatus } from "@/lib/types";
+import CreativeViewer from "@/components/CreativeViewer";
+import type { ContentItem, Finding, FindingStatus, ImageAnalysis } from "@/lib/types";
 
 const SEV_ORDER = { high: 0, medium: 1, low: 2 } as const;
 const HL: Record<string, string> = {
@@ -54,11 +55,12 @@ function Highlighted({ text, findings, active, onPick }: { text: string; finding
 }
 
 function FindingCard({
-  f, text, active, canDecide, model, onAccept, onEdit, onReject, onUndo, cardRef,
+  f, text, active, canDecide, model, onAccept, onEdit, onReject, onUndo, cardRef, onLocate,
 }: {
   f: Finding; text: string; active: boolean; canDecide: boolean; model?: string;
   onAccept: () => void; onEdit: (v: string) => void; onReject: (reason: string) => void; onUndo: () => void;
   cardRef: (el: HTMLDivElement | null) => void;
+  onLocate?: () => void;
 }) {
   const [mode, setMode] = useState<"none" | "edit" | "reject">("none");
   const [val, setVal] = useState(f.suggestion ?? f.quote);
@@ -84,6 +86,11 @@ function FindingCard({
         <span className="font-semibold text-slate-700">Why: </span>
         {f.explanation}
       </p>
+      {f.box && onLocate && (
+        <button type="button" onClick={onLocate} className="mt-1.5 text-xs font-medium text-nova hover:underline">
+          Show on the creative{f.box.page ? ` (page ${f.box.page})` : ""} →
+        </button>
+      )}
       {f.swatches && (
         <div className="mt-2 flex gap-1.5">
           {f.swatches.map((s) => (
@@ -432,9 +439,15 @@ export default function ContentPage() {
               </span>
             </div>
             {item.format === "image" && item.imageDataUrl && (
-              <div className="mb-4 grid gap-3 sm:grid-cols-[200px_1fr]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.imageDataUrl} alt={item.altText || "Creative under review"} className="w-full rounded-lg border" />
+              <div id="creative-viewer" className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,320px)_1fr]">
+                <CreativeViewer
+                  src={item.imageDataUrl}
+                  alt={item.altText || "Creative under review"}
+                  findings={findings}
+                  analysis={item.imageAnalysis}
+                  active={active}
+                  onPick={pick}
+                />
                 <div className="space-y-2 text-sm">
                   <p><span className="label inline">Alt text: </span>{item.altText || <span className="text-rose-600">missing</span>}</p>
                   {item.imageAnalysis && (
@@ -447,6 +460,28 @@ export default function ContentPage() {
                       ))}
                     </div>
                   )}
+                  <VisualSummary a={item.imageAnalysis} />
+                </div>
+              </div>
+            )}
+            {item.pages && item.pages.length > 0 && (
+              <div id="creative-viewer" className="mb-4">
+                <p className="label">Visual check of each PDF page</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {item.pages.map((pg) => (
+                    <div key={pg.page}>
+                      <CreativeViewer
+                        src={pg.dataUrl}
+                        alt={`Page ${pg.page} of ${item.fileName ?? "the document"}`}
+                        findings={findings}
+                        analysis={pg.analysis}
+                        page={pg.page}
+                        active={active}
+                        onPick={pick}
+                      />
+                      <p className="mt-1 text-center text-[11px] text-slate-500">Page {pg.page}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -643,11 +678,40 @@ export default function ContentPage() {
                 onEdit={(v) => decide(f, "edited", { value: v })}
                 onReject={(r) => decide(f, "rejected", { reason: r })}
                 onUndo={() => undo(f)}
+                onLocate={() => {
+                  setActive(f.id);
+                  document.getElementById("creative-viewer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
               />
             ))
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function VisualSummary({ a }: { a?: ImageAnalysis }) {
+  if (!a || (a.logo === undefined && a.blocks === undefined)) return null;
+  return (
+    <div className="space-y-1 text-xs text-slate-600">
+      {a.logo && (
+        <p>
+          <span className="label inline">Logo: </span>
+          {a.logo.found ? `${a.logo.templateName} (match ${Math.round(a.logo.score * 100)}%)` : "not found"}
+        </p>
+      )}
+      {a.blocks && (
+        <p>
+          <span className="label inline">Text blocks: </span>
+          {a.blocks.length
+            ? `${a.blocks.length} · lowest contrast ${Math.min(...a.blocks.map((b) => b.contrast)).toFixed(1)}:1 · smallest ≈${Math.min(...a.blocks.map((b) => b.renderedPx)).toFixed(0)} px on a phone`
+            : "none readable"}
+        </p>
+      )}
+      {(a.logoMs !== undefined || a.ocrMs !== undefined) && (
+        <p className="text-slate-400">Analysed in your browser · logo {a.logoMs ?? "–"} ms · OCR {a.ocrMs ?? "–"} ms</p>
+      )}
     </div>
   );
 }

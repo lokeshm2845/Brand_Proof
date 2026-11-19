@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { aiReview, hasAI, readCreative } from "@/lib/ai";
 import { runRuleEngine } from "@/lib/engine";
-import type { BrandKit, Finding, ImageAnalysis, ReviewMeta } from "@/lib/types";
+import type { BrandKit, CreativePage, Finding, ImageAnalysis, ReviewMeta } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -21,6 +21,7 @@ interface Body {
    */
   layers?: "all" | "ai";
   ruleFindings?: Finding[];
+  pages?: CreativePage[];
 }
 
 export async function POST(req: Request) {
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
   // 2) Deterministic layer (or the browser's copy of it)
   const ruleFindings: Finding[] = aiOnly
     ? (body.ruleFindings as Finding[]).slice(0, 200)
-    : runRuleEngine(text, kit, { isImage: body.isImage, altText: body.altText, image: body.imageAnalysis });
+    : runRuleEngine(text, kit, { isImage: body.isImage, altText: body.altText, image: body.imageAnalysis, pages: Array.isArray(body.pages) ? body.pages.slice(0, 10) : undefined });
   if (meta.altTextSuggestion) {
     const a3 = ruleFindings.find((f) => f.ruleId === "A-03");
     if (a3 && a3.suggestion === undefined) {

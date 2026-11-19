@@ -1,0 +1,148 @@
+[
+ {
+  "file": "clean-1.png",
+  "issues": []
+ },
+ {
+  "file": "clean-2.png",
+  "issues": []
+ },
+ {
+  "file": "clean-3.png",
+  "issues": []
+ },
+ {
+  "file": "clean-4.png",
+  "issues": []
+ },
+ {
+  "file": "clean-5.png",
+  "issues": []
+ },
+ {
+  "file": "old-logo-1.png",
+  "issues": [
+   "LOGO_OUTDATED"
+  ]
+ },
+ {
+  "file": "old-logo-2.png",
+  "issues": [
+   "LOGO_OUTDATED"
+  ]
+ },
+ {
+  "file": "old-logo-3.png",
+  "issues": [
+   "LOGO_OUTDATED"
+  ]
+ },
+ {
+  "file": "old-logo-4.png",
+  "issues": [
+   "LOGO_OUTDATED"
+  ]
+ },
+ {
+  "file": "stretched-1.png",
+  "issues": [
+   "LOGO_STRETCHED"
+  ]
+ },
+ {
+  "file": "stretched-2.png",
+  "issues": [
+   "LOGO_STRETCHED"
+  ]
+ },
+ {
+  "file": "stretched-3.png",
+  "issues": [
+   "LOGO_STRETCHED"
+  ]
+ },
+ {
+  "file": "stretched-4.png",
+  "issues": [
+   "LOGO_STRETCHED"
+  ]
+ },
+ {
+  "file": "recoloured-1.png",
+  "issues": [
+   "LOGO_RECOLOURED"
+  ]
+ },
+ {
+  "file": "recoloured-2.png",
+  "issues": [
+   "LOGO_RECOLOURED"
+  ]
+ },
+ {
+  "file": "recoloured-3.png",
+  "issues": [
+   "LOGO_RECOLOURED"
+  ]
+ },
+ {
+  "file": "recoloured-4.png",
+  "issues": [
+   "LOGO_RECOLOURED"
+  ]
+ },
+ {
+  "file": "low-contrast-1.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
+ },
+ {
+  "file": "low-contrast-2.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
+ },
+ {
+  "file": "low-contrast-3.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
+ },
+ {
+  "file": "low-contrast-4.png",
+  "issues": [
+   "TEXT_CONTRAST"
+  ]
+ },
+ {
+  "file": "small-text-1.png",
+  "issues": [
+   "TEXT_SMALL"
+  ]
+ },
+ {
+  "file": "small-text-2.png",
+  "issues": [
+   "TEXT_SMALL"
+  ]
+ },
+ {
+  "file": "small-text-3.png",
+  "issues": [
+   "TEXT_SMALL"
+  ]
+ },
+ {
+  "file": "no-logo-1.png",
+  "issues": [
+   "LOGO_MISSING"
+  ]
+ },
+ {
+  "file": "no-logo-2.png",
+  "issues": [
+   "LOGO_MISSING"
+  ]
+ }
+]

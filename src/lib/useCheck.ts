@@ -16,6 +16,7 @@ export interface CheckInput {
   imageDataUrl?: string;
   imageAnalysis?: ContentItem["imageAnalysis"];
   altText?: string;
+  pages?: ContentItem["pages"];
 }
 
 /** Creates a content item, runs the brand check, and opens the review screen as soon as results exist. */
@@ -43,6 +44,7 @@ export function useCreateCheck() {
           imageDataUrl: input.imageDataUrl,
           imageAnalysis: input.imageAnalysis,
           altText: input.altText,
+          pages: input.pages,
         },
         role,
         kit.version,

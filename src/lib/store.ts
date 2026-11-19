@@ -1,11 +1,12 @@
 "use client";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { runRuleEngine, score, uid } from "./engine";
 import { DEMO_KIT, personFor } from "./seed";
 import type {
   BrandKit,
   ContentItem,
+  CreativePage,
   Decision,
   Finding,
   ReviewMeta,
@@ -35,6 +36,34 @@ interface State {
 }
 
 const now = () => new Date().toISOString();
+
+/** localStorage that never throws (private mode, quota exceeded, blocked storage). */
+export let storageWarning: string | null = null;
+const safeStorage = {
+  getItem: (k: string) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  setItem: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v);
+      storageWarning = null;
+    } catch {
+      storageWarning = "Your browser storage is full, so the latest changes may not survive a page refresh. Delete a few large image items or use Reset demo.";
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("brandproof-storage"));
+    }
+  },
+  removeItem: (k: string) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      /* ignore */
+    }
+  },
+};
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 
 export function newItem(p: Partial<ContentItem> & { title: string; draftText: string }, role: RoleKey, kitVersion: number): ContentItem {
@@ -191,9 +220,25 @@ export const useStore = create<State>()(
         }),
       removeItem: (id) => set({ items: get().items.filter((i) => i.id !== id) }),
     }),
-    { name: "brandproof-workspace-v1" },
+    {
+      name: "brandproof-workspace-v1",
+      version: 2,
+      storage: createJSONStorage(() => safeStorage),
+      // v1 → v2: Round 3 adds logos and visual rules V-04…V-08 to the demo Brand Kit
+      migrate: (persisted: any, from: number) => {
+        if (persisted?.kit && from < 2) {
+          const kit = persisted.kit as BrandKit;
+          if (!kit.logos) kit.logos = clone(DEMO_KIT.logos ?? []);
+          for (const r of DEMO_KIT.rules) if (!kit.rules.some((x) => x.id === r.id)) kit.rules.push(clone(r));
+        }
+        return persisted;
+      },
+    },
   ),
 );
+
+/** Page analyses without the page images (keeps API payloads small). */
+const lightPages = (p?: CreativePage[]) => p?.map((x) => ({ ...x, dataUrl: "" }));
 
 let aiStatus: Promise<boolean> | null = null;
 export function aiEnabled(): Promise<boolean> {
@@ -224,13 +269,13 @@ export async function reviewItem(itemId: string, text: string, note: string, by:
 
   // An image with no typed text needs the vision model to read it first, so that path stays blocking.
   if (!ai || (isImage && !text.trim())) {
-    const r = await requestReview({ text, kit, intent, isImage, imageDataUrl: it.imageDataUrl, altText: it.altText, imageAnalysis: it.imageAnalysis });
+    const r = await requestReview({ text, kit, intent, isImage, imageDataUrl: it.imageDataUrl, altText: it.altText, imageAnalysis: it.imageAnalysis, pages: lightPages(it.pages) });
     mutate(itemId, (x) => withVersion(x, r.text ?? text, r.findings, r.meta, by, note, kit.version));
     onReady?.();
     return;
   }
 
-  const ruleFindings = runRuleEngine(text, kit, { isImage, altText: it.altText, image: it.imageAnalysis });
+  const ruleFindings = runRuleEngine(text, kit, { isImage, altText: it.altText, image: it.imageAnalysis, pages: it.pages });
   const startedAt = new Date().toISOString();
   let n = 0;
   mutate(itemId, (x) => {
@@ -241,7 +286,7 @@ export async function reviewItem(itemId: string, text: string, note: string, by:
 
   const r = await requestReview({
     text, kit, intent, isImage, imageDataUrl: it.imageDataUrl, altText: it.altText, imageAnalysis: it.imageAnalysis,
-    layers: "ai", ruleFindings,
+    layers: "ai", ruleFindings, pages: lightPages(it.pages),
   });
   mutate(itemId, (x) => {
     const v = x.versions.find((vv) => vv.n === n);
@@ -280,6 +325,7 @@ export async function requestReview(payload: {
   imageAnalysis?: ContentItem["imageAnalysis"];
   layers?: "all" | "ai";
   ruleFindings?: Finding[];
+  pages?: CreativePage[];
 }): Promise<{ findings: Finding[]; meta: ReviewMeta; text: string }> {
   try {
     const res = await fetch("/api/review", {
@@ -295,6 +341,7 @@ export async function requestReview(payload: {
       isImage: payload.isImage,
       altText: payload.altText,
       image: payload.imageAnalysis,
+      pages: payload.pages,
     });
     return {
       findings,

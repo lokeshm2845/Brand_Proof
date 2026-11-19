@@ -6,12 +6,14 @@
 import type {
   BrandKit,
   Category,
+  CreativePage,
   Finding,
   ImageAnalysis,
   Rule,
   ScoreBreakdown,
   Severity,
 } from "./types";
+import { RULE_FOR, visualIssues } from "./visualRules";
 
 let counter = 0;
 export const uid = (p = "f") =>
@@ -101,6 +103,8 @@ export interface EngineOptions {
   isImage?: boolean;
   altText?: string;
   image?: ImageAnalysis;
+  /** Rendered pages of a PDF creative (each analysed like an image). */
+  pages?: CreativePage[];
   today?: string;
 }
 
@@ -376,7 +380,7 @@ export function runRuleEngine(text: string, kit: BrandKit, opts: EngineOptions =
     }
   }
 
-  // 8) Images: alt text + palette + contrast
+  // 8) Images and PDF pages: alt text, palette, logo, per-text-block contrast and size
   if (opts.isImage) {
     const a3 = R("A-03");
     if (a3 && !opts.altText?.trim()) {
@@ -388,23 +392,48 @@ export function runRuleEngine(text: string, kit: BrandKit, opts: EngineOptions =
         }),
       );
     }
-    const img = opts.image;
-    if (img) {
-      const v1 = R("V-01");
-      const off = img.dominant.filter((d) => d.share >= 0.1 && d.deltaE > 25);
-      if (v1 && off.length) {
+  }
+  const creatives: { a: ImageAnalysis; page?: number }[] = [];
+  if (opts.isImage && opts.image) creatives.push({ a: opts.image });
+  for (const p of opts.pages ?? []) creatives.push({ a: p.analysis, page: p.page });
+  const hasLogos = (kit.logos ?? []).some((l) => l.kind === "approved");
+  for (const { a: img, page } of creatives) {
+    const where = page ? ` on page ${page}` : "";
+    const v1 = R("V-01");
+    const off = img.dominant.filter((d) => d.share >= 0.1 && d.deltaE > 25);
+    if (v1 && off.length) {
+      out.push(
+        mk(v1, {
+          category: "visual",
+          quote: "",
+          message: `${off.length} large colour area${off.length > 1 ? "s" : ""} outside the brand palette${where}`,
+          explanation: `${v1.id} · ${v1.title}: ${off
+            .map((o) => `${o.hex} covers ${Math.round(o.share * 100)}% of the creative (closest brand colour: ${o.nearest}, ΔE ${o.deltaE.toFixed(0)})`)
+            .join("; ")}. Colour difference above ΔE 25 is clearly visible.`,
+          swatches: off.map((o) => o.hex),
+          box: page ? { x: 0, y: 0, w: 1, h: 1, page } : undefined,
+        }),
+      );
+    }
+    const measured = img.blocks !== undefined || img.logo !== undefined;
+    if (measured) {
+      // Precise checks from the Visual Compliance Engine
+      for (const iss of visualIssues({ logo: img.logo, blocks: img.blocks ?? [], hasLogos, page })) {
+        const rule = R(RULE_FOR[iss.code]);
+        if (!rule) continue;
         out.push(
-          mk(v1, {
+          mk(rule, {
             category: "visual",
             quote: "",
-            message: `${off.length} large colour area${off.length > 1 ? "s" : ""} outside the brand palette`,
-            explanation: `${v1.id} · ${v1.title}: ${off
-              .map((o) => `${o.hex} covers ${Math.round(o.share * 100)}% of the creative (closest brand colour: ${o.nearest}, ΔE ${o.deltaE.toFixed(0)})`)
-              .join("; ")}. Colour difference above ΔE 25 is clearly visible.`,
-            swatches: off.map((o) => o.hex),
+            message: iss.message,
+            explanation: `${rule.id} · ${rule.title}: ${iss.detail}`,
+            swatches: iss.swatches,
+            box: iss.box,
           }),
         );
       }
+    } else {
+      // Older analyses without text boxes: fall back to the dominant-colour estimate
       const v3 = R("V-03");
       if (v3 && img.contrastEstimate < 3) {
         out.push(
@@ -412,7 +441,7 @@ export function runRuleEngine(text: string, kit: BrandKit, opts: EngineOptions =
             category: "visual",
             quote: "",
             confidence: 0.7,
-            message: `Low contrast between main colours (${img.contrastEstimate.toFixed(1)}:1)`,
+            message: `Low contrast between main colours (${img.contrastEstimate.toFixed(1)}:1)${where}`,
             explanation: `${v3.id} · ${v3.title}: the two dominant colours have an estimated contrast of ${img.contrastEstimate.toFixed(
               1,
             )}:1, below the WCAG AA target of 4.5:1. This is an estimate from the colour distribution, so a reviewer should confirm.`,
