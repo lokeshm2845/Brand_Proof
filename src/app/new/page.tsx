@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Image as ImageIcon, Loader2, ShieldCheck, Type, Upload } from "lucide-react";
 import { SAMPLES } from "@/lib/seed";
 import { useCreateCheck } from "@/lib/useCheck";
@@ -120,6 +120,17 @@ export default function NewCheck() {
       setFileErr("Could not load the sample image.");
     }
   }
+
+  // Deep link from the home page: /new?sample=image opens the off-brand ad straight away
+  const autoSample = useRef(false);
+  useEffect(() => {
+    if (autoSample.current) return;
+    autoSample.current = true;
+    if (new URLSearchParams(window.location.search).get("sample") === "image") {
+      setMode("image");
+      loadSampleCreative();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canSubmit =
     !busy && !fileBusy && (mode === "image" ? Boolean(img) : text.trim().length > 0);
@@ -316,10 +327,11 @@ export default function NewCheck() {
             id="content"
             className="input min-h-[180px] font-[450] leading-relaxed"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => setText(e.target.value.slice(0, 20000))}
+            maxLength={20000}
             placeholder={mode === "image" ? "e.g. MEGA DIWALI SALE — 100% guaranteed cashback!" : "Paste your post, email or ad copy here…"}
           />
-          <p className="mt-1 text-right text-xs text-slate-400">{text.split(/\s+/).filter(Boolean).length} words</p>
+          <p className="mt-1 text-right text-xs text-slate-400">{text.split(/\s+/).filter(Boolean).length} words{text.length >= 20000 ? " · limit of 20,000 characters reached" : ""}</p>
         </div>
 
         {progress && (

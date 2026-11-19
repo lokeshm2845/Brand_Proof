@@ -74,7 +74,7 @@ export function analyzeImage(dataUrl: string, palette: PaletteColor[]): Promise<
         else merged.push({ ...col });
       }
       merged.sort((a, b) => b.n - a.n);
-      const pal = palette.map((p) => ({ name: p.name, rgb: hexToRgb(p.hex) }));
+      const pal = palette.filter((p) => /^#?[0-9a-f]{6}$/i.test(p.hex.trim())).map((p) => ({ name: p.name, rgb: hexToRgb(p.hex.trim()) }));
       const dominant = merged.filter((m) => m.n / Math.max(1, total) >= 0.03).slice(0, 6).map((m) => {
         let best = { name: "—", d: 999 };
         for (const p of pal) {

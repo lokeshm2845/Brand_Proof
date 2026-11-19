@@ -75,6 +75,39 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="grid gap-3 md:grid-cols-3">
+        {[
+          {
+            tag: "Visual compliance",
+            title: "Check an ad image or PDF",
+            body: "Finds retired, stretched or recoloured logos, low-contrast and tiny text — and draws a box on the exact spot.",
+            href: "/new?sample=image",
+            cta: "Try the off-brand ad",
+          },
+          {
+            tag: "Self-improving Brand Kit",
+            title: "Fix a rule people keep overriding",
+            body: "Groups override reasons, drafts a clearer rule, and previews its impact on all past content before you publish it.",
+            href: "/improve/T-04",
+            cta: "Improve rule T-04",
+          },
+          {
+            tag: "Team workspaces",
+            title: "Review together, on any device",
+            body: "Real accounts, invite links per role, live updates and notifications — access enforced by row-level security.",
+            href: "/team",
+            cta: "Open team workspace",
+          },
+        ].map((c) => (
+          <Link key={c.tag} href={c.href} className="card group p-4 transition hover:border-nova">
+            <span className="rounded-full bg-nova-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-nova">New · {c.tag}</span>
+            <p className="mt-2 font-semibold">{c.title}</p>
+            <p className="mt-1 text-sm text-slate-600">{c.body}</p>
+            <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-nova">{c.cta} <ArrowRight size={14} className="transition group-hover:translate-x-0.5" /></p>
+          </Link>
+        ))}
+      </section>
+
       <section className="card p-5">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <h2 className="text-lg font-bold">Content workspace</h2>

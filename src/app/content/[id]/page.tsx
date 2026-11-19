@@ -294,6 +294,8 @@ export default function ContentPage() {
 
   const submitForReview = () =>
     mutate(item.id, (it) => {
+      // idempotent: a double click (or a teammate who already submitted) changes nothing
+      if (it.status === "in_review" || it.status === "approved") return;
       it.status = "in_review";
       it.approvals = {};
       it.audit.push({ at: new Date().toISOString(), by: me.name, action: `Submitted v${it.versions.length} for review${it.needsLegal ? " (Brand + Legal)" : " (Brand)"}` });
@@ -307,6 +309,7 @@ export default function ContentPage() {
       note = r.trim();
     }
     mutate(item.id, (it) => {
+      if (it.status !== "in_review" || it.approvals[as]) return; // already approved or no longer in review
       it.approvals[as] = { by: me.name, at: new Date().toISOString(), note };
       it.audit.push({ at: new Date().toISOString(), by: me.name, action: `Approved (${as === "brand" ? "Brand" : "Legal"})${note ? ` with open issues — “${note}”` : ""}` });
       if (it.approvals.brand && (!it.needsLegal || it.approvals.legal)) {
@@ -324,6 +327,7 @@ export default function ContentPage() {
       return;
     }
     mutate(item.id, (it) => {
+      if (it.status !== "in_review") return;
       it.comments.push({ id: crypto.randomUUID(), by: me.name, role, at: new Date().toISOString(), text: comment.trim() });
       it.status = "changes_requested";
       it.approvals = {};
@@ -647,6 +651,11 @@ export default function ContentPage() {
             <p className="flex items-center gap-2 rounded-lg bg-nova-soft p-2.5 text-xs text-nova">
               <Loader2 size={14} className="shrink-0 animate-spin" />
               Rule-engine results are ready. The AI reviewer is still checking tone, messaging and claims — its findings and fixes will appear here automatically.
+            </p>
+          )}
+          {latest?.meta?.aiPending && !aiPending && (
+            <p className="flex gap-2 rounded-lg bg-slate-100 p-2.5 text-xs text-slate-600">
+              <Info size={14} className="shrink-0" /> The AI review for this version was interrupted (the page was closed or refreshed). The rule-engine results below are complete — click Re-check to run the AI layer again.
             </p>
           )}
           {latest?.meta?.mode === "rules-only" && latest.meta.note && (
