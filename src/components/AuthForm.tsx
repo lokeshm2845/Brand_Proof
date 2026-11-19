@@ -34,7 +34,7 @@ export default function AuthForm({ onDone, hint }: { onDone: () => void; hint?: 
       <div className="flex rounded-lg border border-slate-200 p-0.5 text-sm">
         {(["signup", "signin"] as const).map((k) => (
           <button key={k} type="button" onClick={() => { setTab(k); setErr(null); }} className={`flex-1 rounded-md px-3 py-1.5 ${tab === k ? "bg-nova-soft font-semibold text-nova" : "text-slate-600"}`}>
-            {k === "signup" ? "Create account" : "Sign in"}
+            {k === "signup" ? "I’m new here" : "I have an account"}
           </button>
         ))}
       </div>

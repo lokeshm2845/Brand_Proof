@@ -10,20 +10,35 @@ import { timeAgo } from "./ui";
 /** Opens the team workspace that was open before a refresh. Returns true once the app can render. */
 export function useTeamResume() {
   const [ready, setReady] = useState(!team.teamConfigured);
-  const lastOrgId = useStore((s) => s.lastOrgId);
-  const mode = useStore((s) => s.mode);
   const started = useRef(false);
   useEffect(() => {
-    if (!team.teamConfigured || started.current) return;
-    started.current = true;
-    if (mode === "team" || !lastOrgId) {
-      setReady(true);
-      return;
+    if (!team.teamConfigured) return;
+    // Wait until the saved state (which holds the last open workspace) has loaded from storage.
+    const go = () => {
+      if (started.current) return;
+      started.current = true;
+      const { mode, lastOrgId } = useStore.getState();
+      if (mode === "team" || !lastOrgId) {
+        setReady(true);
+        return;
+      }
+      openWorkspace(lastOrgId)
+        .catch((e) => {
+          console.warn("Could not reopen team workspace:", e?.message ?? e);
+          useStore.setState({ lastOrgId: null });
+        })
+        .finally(() => setReady(true));
+    };
+    if (useStore.persist.hasHydrated()) go();
+    else {
+      const off = useStore.persist.onFinishHydration(go);
+      const t = setTimeout(go, 3000); // never wait forever, even if stored data could not be loaded
+      return () => {
+        off();
+        clearTimeout(t);
+      };
     }
-    openWorkspace(lastOrgId)
-      .catch(() => useStore.setState({ lastOrgId: null }))
-      .finally(() => setReady(true));
-  }, [lastOrgId, mode]);
+  }, []);
   return ready;
 }
 

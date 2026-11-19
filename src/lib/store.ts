@@ -64,8 +64,15 @@ export let storageWarning: string | null = null;
 const safeStorage = {
   getItem: (k: string) => {
     try {
-      return localStorage.getItem(k);
+      const v = localStorage.getItem(k);
+      if (v !== null) JSON.parse(v); // damaged data → start fresh instead of failing to load
+      return v;
     } catch {
+      try {
+        localStorage.removeItem(k);
+      } catch {
+        /* ignore */
+      }
       return null;
     }
   },
